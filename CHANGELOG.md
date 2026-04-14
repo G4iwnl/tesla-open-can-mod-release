@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-04-14
+
+### Changed
+
+- Removed all non-ESP32 platform support (RP2040, M4, MCP2515, Arduino IDE)
+- ESP32/ESP32-S3 TWAI driver only — single driver, simplified codebase
+- O(1) bitmask-based CAN ID filtering in handler loop (was O(n) per frame)
+- O(1) direct-mapped lookup table for CAN Live signal updates (was O(n) linear search)
+- O(1) bitmask for CAN Monitor watched ID check (was O(21) linear search)
+- Optimized CanIdEntry struct layout (28→24 bytes, saves 512B RAM at 128 slots)
+- Replaced cJSON tree with direct snprintf in /api/status (1 malloc vs ~50 cJSON nodes)
+- Cleaned .gitlab-ci.yml: removed RP2040/M4/FeatherWing CI jobs, added Waveshare + LilyGo jobs
+- Updated all docs-site pages to ESP32-only content
+- Updated README supported boards table to ESP32-only
+
+### Removed
+
+- MCP2515 and SAME51 CAN drivers
+- RP2040CAN/ Arduino IDE sketch folder
+- Arduino IDE flashing documentation and CI job
+- platformio_set_ino_profile.py and platformio_sync_ino_defines.py scripts
+- Feather RP2040, M4, and V2 FeatherWing hardware documentation
+- sketch_config.h shared configuration file
+
 ## [1.2.3] - 2026-04-14
 
 ### Added
