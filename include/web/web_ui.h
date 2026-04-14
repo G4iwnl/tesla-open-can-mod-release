@@ -594,7 +594,6 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
     </span>
     <span class="pill-btn" style="cursor:default"><span class="conn-dot off" id="connDot"></span> <span id="iConn">--</span></span>
     <button class="pill-btn" id="iLangBtn" onclick="toggleLang()">EN</button>
-    <button class="pill-btn" id="iThemeBtn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
   </div>
 </header>
 
@@ -1708,26 +1707,16 @@ function toggleLang(){
 }
 
 /* ═══════════════════════════════════════════════════
-   Theme toggle
+   Theme (auto-follow vehicle headlights)
    ═══════════════════════════════════════════════════ */
-var theme=localStorage.getItem('theme')||'dark';
+var theme='auto';
 function applyTheme(){
-  var actual=theme;
-  if(theme==='auto')actual=window._autoThemeVal||'dark';
+  var actual=window._autoThemeVal||'dark';
   var isLight=actual==='light';
   document.documentElement.classList.toggle('light',isLight);
   document.body.classList.toggle('light',isLight);
-  $('iThemeBtn').textContent=theme==='auto'?'🔄':(isLight?'☀️':'🌙');
   var mc=document.querySelector('meta[name="theme-color"]');
   if(mc)mc.setAttribute('content',isLight?'#f2f2f7':'#000000');
-}
-function toggleTheme(){
-  theme=theme==='dark'?'light':theme==='light'?'auto':'dark';
-  localStorage.setItem('theme',theme);
-  applyTheme();
-  var labels={dark:'深色模式',light:'浅色模式',auto:'自动 (跟随车灯)'};
-  var labelsEn={dark:'Dark',light:'Light',auto:'Auto (headlights)'};
-  toast(lang==='zh'?labels[theme]:labelsEn[theme]);
 }
 
 /* ═══════════════════════════════════════════════════
