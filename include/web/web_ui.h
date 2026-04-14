@@ -22,7 +22,19 @@ const char WEB_UI_HTML[] = R"rawliteral(<!DOCTYPE html>
   --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.12);
   --text:#fff;--text2:#8e8e93;--text3:#6e6e73;
   --blue:#3478f6;--green:#30d158;--red:#ff453a;--amber:#ffd60a;
-  --tesla:#e31937;--radius:14px;--radius-sm:10px
+  --tesla:#e31937;--radius:14px;--radius-sm:10px;
+  --overlay-bg:rgba(0,0,0,.06);--overlay-bg2:rgba(0,0,0,.03);
+  --overlay-border:rgba(255,255,255,.06);--overlay-border2:rgba(255,255,255,.04);
+  --log-bg:rgba(0,0,0,.5);--log-text:#a8a8b3;--log-ts:#5e5e63
+}
+:root.light{
+  --bg:#f2f2f7;--card:rgba(255,255,255,.94);--card2:rgba(245,245,247,.9);
+  --border:rgba(0,0,0,.06);--border2:rgba(0,0,0,.1);
+  --text:#1c1c1e;--text2:#636366;--text3:#8e8e93;
+  --blue:#007aff;--green:#34c759;--red:#ff3b30;--amber:#ff9500;
+  --tesla:#e31937;--overlay-bg:rgba(0,0,0,.04);--overlay-bg2:rgba(0,0,0,.02);
+  --overlay-border:rgba(0,0,0,.06);--overlay-border2:rgba(0,0,0,.04);
+  --log-bg:rgba(0,0,0,.04);--log-text:#3a3a3c;--log-ts:#8e8e93
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:var(--bg);color:var(--text)}
@@ -39,6 +51,9 @@ body{
   background:linear-gradient(180deg,rgba(20,20,22,.98) 0%,rgba(10,10,12,.95) 100%);
   border-bottom:1px solid var(--border);z-index:50
 }
+.light .header{
+  background:linear-gradient(180deg,rgba(255,255,255,.98) 0%,rgba(245,245,247,.95) 100%)
+}
 .main{
   flex:1 1 auto;overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
@@ -47,6 +62,8 @@ body{
 }
 .main::-webkit-scrollbar{width:6px}
 .main::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+.light .main{scrollbar-color:rgba(0,0,0,.15) transparent}
+.light .main::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15)}
 .tab-bar{
   flex:0 0 auto;display:flex;
   background:rgba(18,18,20,.96);
@@ -54,6 +71,7 @@ body{
   border-top:1px solid var(--border);
   padding:6px 0 env(safe-area-inset-bottom,8px);z-index:50
 }
+.light .tab-bar{background:rgba(255,255,255,.92)}
 
 /* ── Header ─────────────────────────────────────── */
 .brand{display:flex;align-items:center;gap:10px}
@@ -76,6 +94,8 @@ body{
   font-family:inherit;text-decoration:none
 }
 .pill-btn:hover{background:rgba(255,255,255,.12)}
+.light .pill-btn{background:rgba(0,0,0,.04)}
+.light .pill-btn:hover{background:rgba(0,0,0,.08)}
 .pill-btn.nav{background:rgba(52,120,246,.12);border-color:rgba(52,120,246,.3);color:var(--blue)}
 .conn-dot{
   width:6px;height:6px;border-radius:50%;
@@ -295,6 +315,7 @@ body{
   position:absolute;inset:0;background:rgba(255,255,255,.12);
   border-radius:26px;transition:.25s
 }
+.light .toggle-track{background:rgba(0,0,0,.1)}
 .toggle-track::before{
   content:"";position:absolute;width:26px;height:26px;left:2px;top:2px;
   background:#fff;border-radius:50%;transition:.25s;
@@ -482,6 +503,46 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
   .sl-chip{padding:6px 10px;min-width:56px}
   .sl-chip-val{font-size:16px}
 }
+
+/* ── Light theme overrides ──────────────────────── */
+.light .gear-badge{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1)}
+.light .stats-bar{background:var(--card)}
+.light .fsd-pill{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1)}
+.light .ed-cell{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.04)}
+.light .hands-dot{background:rgba(0,0,0,.1)}
+.light .follow-bar{background:rgba(0,0,0,.08)}
+.light .sl-chip{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.06)}
+.light .bottom-stats{background:rgba(0,0,0,.02);border-color:rgba(0,0,0,.04)}
+.light .mode-card{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.06)}
+.light .seg{background:rgba(0,0,0,.05)}
+.light .seg-btn.active{background:rgba(0,0,0,.1)}
+.light .row{border-bottom-color:rgba(0,0,0,.06)}
+.light .txt{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1)}
+.light .txt:focus{background:rgba(0,0,0,.06)}
+.light .txt::placeholder{color:var(--text3)}
+.light .file-pick{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.1)}
+.light .file-pick:hover{background:rgba(0,0,0,.08)}
+.light .tag{background:rgba(0,0,0,.05)}
+.light .progress{background:rgba(0,0,0,.06)}
+.light .log{background:var(--log-bg);border-color:rgba(0,0,0,.06)}
+.light .log-line{color:var(--log-text)}
+.light .log-line .ts{color:var(--log-ts)}
+.light .hint{background:rgba(0,0,0,.03)}
+.light .sl-mode{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.06)}
+.light .rule-item{background:rgba(0,0,0,.03)}
+.light .rule-item:active{background:rgba(0,0,0,.06)}
+.light .rule-add{border-color:rgba(0,0,0,.12)}
+.light .modal-box{background:rgba(255,255,255,.98);border-color:rgba(0,0,0,.1);box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.light .modal-btn.cancel{background:rgba(0,0,0,.06)}
+.light .toast{background:rgba(255,255,255,.95)}
+.light .ed-bar.green{background:linear-gradient(90deg,#a8e6b4,var(--green))}
+.light .ed-bar.red{background:linear-gradient(90deg,#f5a8a8,var(--red))}
+.light .ed-bar.blue{background:linear-gradient(90deg,#a8c8f5,var(--blue))}
+.light .pill-btn.nav{background:rgba(0,122,255,.08);border-color:rgba(0,122,255,.2)}
+.light .dev-tag{background:rgba(255,149,0,.1);color:var(--amber)}
+.light .light-pill{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.06)}
+.light .light-pill.on{background:rgba(255,149,0,.08);border-color:rgba(255,149,0,.2)}
+.light .btn-primary{color:#fff}
 </style>
 </head>
 <body>
@@ -528,7 +589,7 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
       <span id="bsUp" style="color:var(--text2)">0s</span>
     </span>
     <span class="pill-btn" style="cursor:default"><span class="conn-dot off" id="connDot"></span> <span id="iConn">--</span></span>
-    <button class="pill-btn" id="iLangBtn" onclick="toggleLang()">EN</button>
+    <button class="pill-btn" id="iLangBtn" onclick="toggleLang()">EN</button>\n    <button class="pill-btn" id="iThemeBtn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
   </div>
 </header>
 
@@ -1612,8 +1673,27 @@ function toggleLang(){
 }
 
 /* ═══════════════════════════════════════════════════
+   Theme toggle
+   ═══════════════════════════════════════════════════ */
+var theme=localStorage.getItem('theme')||'dark';
+function applyTheme(){
+  var isLight=theme==='light';
+  document.documentElement.classList.toggle('light',isLight);
+  document.body.classList.toggle('light',isLight);
+  $('iThemeBtn').textContent=isLight?'☀️':'🌙';
+  var mc=document.querySelector('meta[name=\"theme-color\"]');
+  if(mc)mc.setAttribute('content',isLight?'#f2f2f7':'#000000');
+}
+function toggleTheme(){
+  theme=theme==='dark'?'light':'dark';
+  localStorage.setItem('theme',theme);
+  applyTheme();
+}
+
+/* ═══════════════════════════════════════════════════
    Boot
    ═══════════════════════════════════════════════════ */
+applyTheme();
 applyLang();
 setSLMode(slMode);
 poll();
