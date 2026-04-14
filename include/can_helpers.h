@@ -117,13 +117,12 @@ inline constexpr int kMaxSmartRules = 8;
 
 struct SmartOffsetRules {
     SmartOffsetRule rules[kMaxSmartRules] = {
-        {50, 50},   // < 50 kph → 50%
-        {60, 40},   // 50-60 → 40%
-        {70, 30},   // 60-70 → 30%
-        {80, 20},   // 70-80 → 20%
-        {999, 5},   // >= 80 → 5%
+        {41, 50},   // ≤ 40 kph → 50%
+        {51, 30},   // 50 kph → 30%
+        {61, 20},   // 60 kph → 20%
+        {999, 10},  // 80-120 kph → 10%
     };
-    int count = 5;
+    int count = 4;
 
     int lookup(int speedLimit) const {
         for (int i = 0; i < count; i++) {
