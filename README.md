@@ -1,4 +1,4 @@
-### 🚨 DO NOT UPDATE YOUR TESLA TO ```2026.8.6``` and ```2026.2.9.x``` TO KEEP FSD FEATURES 🚨
+### 🚨 请勿将特斯拉更新至 `2026.8.6` 和 `2026.2.9.x`，以保留 FSD 功能 🚨
 
 <br>
 <hr>
@@ -7,82 +7,73 @@
 
 > 本项目基于 [Tesla-OPEN-CAN-MOD](https://gitlab.com/Tesla-OPEN-CAN-MOD/tesla-open-can-mod) 大佬的原始项目进行二次开发，感谢原作者的开源贡献。
 
-[Website](https://teslaopencanmod.org) | [Documentation](https://teslaopencanmod.org/docs/intro) | [Community Discord](https://discord.gg/ZTQKAUTd2F)
-
----
-
 开源 Tesla CAN 总线通用改装工具。以 FSD 激活为起点，目标是通过 CAN 总线暴露并控制一切可访问的功能。
 
-## Disclaimer
+## 免责声明
 
 > [!WARNING]
-> **FSD is a premium feature and must be properly purchased or subscribed to.** Any attempt to bypass the purchase or subscription requirement will result in a permanent ban from Tesla services.
+> **FSD 是付费高级功能，必须正规购买或订阅。** 任何试图绕过购买或订阅要求的行为都将导致被 Tesla 服务永久封禁。
 
 > [!WARNING]
-> **Modifying CAN bus messages can cause dangerous behavior or permanently damage your vehicle.** The CAN bus controls everything from braking and steering to airbags — a malformed message can have serious consequences. If you don't fully understand what you're doing, **do not install this on your car**.
+> **修改 CAN 总线消息可能导致危险行为或永久损坏车辆。** CAN 总线控制着从制动、转向到安全气囊的一切——一条错误的消息可能造成严重后果。如果你不完全了解自己在做什么，**请勿将此设备安装在你的车上**。
 
-This project is for testing and educational purposes only and for use on **private property**. The authors accept no responsibility for any damage to your vehicle, injury, or legal consequences resulting from the use of this software. This project may void your vehicle warranty and **may not comply with road safety regulations in your jurisdiction**.
+本项目仅供测试和教育用途，仅限在**私人场地**使用。作者不对因使用本软件造成的任何车辆损坏、人身伤害或法律后果承担责任。本项目可能导致车辆保修失效，并且**可能不符合你所在地区的道路安全法规**。
 
-For any use beyond private testing, you are responsible for complying with all applicable local laws and regulations. Always keep your hands on the wheel and stay attentive while driving.
+在私人测试之外的任何使用，你有责任遵守所有适用的当地法律法规。驾驶时请始终将手放在方向盘上并保持注意力集中。
 
-## Features
+## 功能
 
-- **FSD Activation** — Enables Full Self-Driving at the CAN bus level by intercepting and modifying Autopilot control frames
-- **Nag Suppression** — Clears the hands-on-wheel ECE R79 nag bit, suppressing the periodic "apply pressure to the steering wheel" warning
-- **Autosteer Nag Killer** — Suppresses the Autopilot "hands on wheel" alert by echoing modified EPAS steering torque frames on CAN bus 4
-- **Actually Smart Summon (ASS)** — Removes EU regulatory restrictions on Smart Summon (HW3/HW4)
-- **Speed Profiles** — Maps the follow-distance stalk setting to FSD aggressiveness profiles (Chill / Normal / Hurry / Max / Sloth)
-- **Speed Offset** — Adjustable speed offset applied on top of the Autopilot set speed. Supports manual offset and smart offset mode with speed-based rules (HW3/HW4)
-- **ISA Speed Chime Suppression** — Mutes the Intelligent Speed Assistance audible chime while keeping the visual indicator active (HW4, optional)
-- **Emergency Vehicle Detection** — Enables approaching emergency vehicle detection on FSD v14 (HW4, optional)
-- **Web Interface** — WiFi hotspot on ESP32 boards for real-time monitoring, runtime feature toggles, and over-the-air firmware updates
+- **FSD 激活** — 通过拦截和修改 Autopilot 控制帧，在 CAN 总线层面启用完全自动驾驶
+- **Nag 抑制** — 清除 ECE R79 规定的握方向盘提醒位，抑制周期性的"请对方向盘施加压力"警告
+- **Autosteer Nag Killer** — 通过在 CAN 总线 4 上发送修改后的 EPAS 转向扭矩帧来抑制 Autopilot"手放方向盘"提示
+- **Actually Smart Summon (ASS)** — 移除智能召唤的欧盟法规限制（HW3/HW4）
+- **速度档位** — 将跟车距离拨杆设置映射为 FSD 激进程度档位（保守 / 默认 / 适中 / 激进 / 树懒）
+- **速度偏移** — 在 Autopilot 设定速度之上应用可调速度偏移。支持手动偏移和基于速度规则的智能偏移模式（HW3/HW4）
+- **ISA 速度提示音抑制** — 静音智能速度辅助的声音提示，同时保留视觉指示器（HW4，可选）
+- **紧急车辆检测** — 在 FSD v14 上启用接近紧急车辆检测（HW4，可选）
+- **Web 管理界面** — ESP32 板载 WiFi 热点，提供实时监控、运行时功能开关和 OTA 固件更新
 
-Full feature documentation: [teslaopencanmod.org/docs/](https://teslaopencanmod.org/docs/intro)
+## 工作原理
 
-## What It Does
+固件运行在 ESP32 和 ESP32-S3 板卡上，使用原生 TWAI（CAN）外设。它挂载在车辆 CAN 总线上，拦截相关帧，修改必要的位，然后重新发送修改后的帧——全部实时完成。
 
-The firmware runs on ESP32 and ESP32-S3 boards with the native TWAI (CAN) peripheral. It sits on the vehicle CAN bus, intercepts relevant frames, modifies the necessary bits, and re-transmits the modified frames — all in real time.
+硬件类型（Legacy / HW3 / HW4）和可选功能通过 `platformio.ini` 构建标志配置。WiFi Web 界面提供运行时控制、实时监控和 OTA 固件更新。
 
-The hardware variant (Legacy / HW3 / HW4) and optional features are configured via `platformio.ini` build flags. A WiFi web interface provides runtime control, real-time monitoring, and over-the-air firmware updates.
+## 前提条件
 
-## Prerequisites
+**使用 FSD 相关功能需要有效的 FSD 套餐** — 购买或订阅均可。本设备在 CAN 总线层面启用 FSD 功能，但车辆仍需要 Tesla 的有效 FSD 授权。
 
-**An active FSD package is required to use FSD-related features** — either purchased or subscribed. This board enables the FSD functionality on the CAN bus level, but the vehicle still needs a valid FSD entitlement from Tesla.
+Autosteer Nag Killer、ISA 速度提示音抑制和 Web 界面等功能独立运行，不需要 FSD。
 
-Features like the Autosteer Nag Killer, ISA Speed Chime Suppression, and the Web Interface work independently and do not require FSD.
+如果你所在地区无法订阅 FSD，可以通过外区 Tesla 账户解决。
 
-If FSD subscriptions are not available in your region, there is a workaround using a foreign Tesla account. See [teslaopencanmod.org/docs/getting-started/fsd-subscription](https://teslaopencanmod.org/docs/getting-started/fsd-subscription) for details.
+## 支持的板卡
 
-## Supported Boards
+| 板卡                                                                     | CAN 接口                    | 状态       |
+|-------------------------------------------------------------------------|----------------------------|------------|
+| [Waveshare ESP32-S3 RS485/CAN](https://www.waveshare.com/esp32-s3-rs485-can.htm) | SIT1050T + ESP32-S3 TWAI   | 推荐       |
+| ESP32 + CAN 收发器（如 ESP32-DevKitC + SN65HVD230）                      | 原生 TWAI 外设              | 已测试     |
+| [Atomic CAN Base](https://docs.m5stack.com/en/atom/Atomic%20CAN%20Base) | CA-IS3050G + ESP32 TWAI    | 已测试     |
+| M5Stack AtomS3 + CAN Base                                               | CA-IS3050G + ESP32-S3 TWAI | 已测试     |
+| LilyGo T-CAN485                                                         | ESP32 TWAI + SN65HVD230    | 已测试     |
 
-| Board                                                                   | CAN Interface              | Status      |
-|-------------------------------------------------------------------------|----------------------------|-------------|
-| [Waveshare ESP32-S3 RS485/CAN](https://www.waveshare.com/esp32-s3-rs485-can.htm) | SIT1050T over ESP32-S3 TWAI | Recommended |
-| ESP32 with CAN transceiver (e.g. ESP32-DevKitC + SN65HVD230)            | Native TWAI peripheral     | Tested      |
-| [Atomic CAN Base](https://docs.m5stack.com/en/atom/Atomic%20CAN%20Base) | CA-IS3050G over ESP32 TWAI | Tested      |
-| M5Stack AtomS3 on CAN Base                                              | CA-IS3050G over ESP32-S3 TWAI | Tested   |
-| LilyGo T-CAN485                                                         | ESP32 TWAI + SN65HVD230   | Tested      |
+## 安装
 
-## Installation
+使用 PlatformIO 编译和烧录。选择你的板卡环境并在 `platformio.ini` 构建标志中配置车辆类型。
 
-Use PlatformIO to build and flash. Select your board environment and configure the vehicle variant in `platformio.ini` build flags.
+## 版本管理
 
-Full installation guide: [teslaopencanmod.org/docs/getting-started/firmware-flash](https://teslaopencanmod.org/docs/getting-started/firmware-flash)
+- 项目版本在 [`VERSION`](VERSION) 中使用语义化版本号跟踪。
+- 发行说明在 [`CHANGELOG.md`](CHANGELOG.md) 中记录。
 
-## Versioning
+## 第三方库
 
-- The project version is tracked in [`VERSION`](VERSION) using Semantic Versioning.
-- Release notes are tracked in [`CHANGELOG.md`](CHANGELOG.md).
-- Ongoing work should be added to the `Unreleased` section before merge.
+本项目依赖以下开源库。完整许可证文本见 [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES)。
 
-## Third-Party Libraries
-
-This project depends on the following open-source libraries. Their full license texts are in [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
-
-| Library | License | Copyright |
+| 库 | 许可证 | 版权 |
 |---------|---------|-----------|
-| [espressif/esp-idf](https://github.com/espressif/esp-idf) (TWAI driver) | Apache 2.0 | (c) 2015-2025 Espressif Systems (Shanghai) CO LTD |
+| [espressif/esp-idf](https://github.com/espressif/esp-idf)（TWAI 驱动） | Apache 2.0 | (c) 2015-2025 Espressif Systems (Shanghai) CO LTD |
 
-## License
+## 许可证
 
-This project is licensed under the **GNU General Public License v3.0** — see the [GPL-3.0 License](https://www.gnu.org/licenses/gpl-3.0.html) for details.
+本项目采用 **GNU 通用公共许可证 v3.0** 授权 — 详见 [GPL-3.0 License](https://www.gnu.org/licenses/gpl-3.0.html)。
