@@ -1337,7 +1337,11 @@ function updateDashboard(sig){
   /* FSD status from /api/status (handler state, not raw CAN frame) */
   /* updated in pollStatus() instead */
 
-  /* Light removed from dashboard */
+  /* Auto theme: follow headlights */
+  if(theme==='auto'&&sig.lightState!==undefined){
+    var newVal=(sig.lightState>0)?'dark':'light';
+    if(newVal!==window._autoThemeVal){window._autoThemeVal=newVal;applyTheme();}
+  }
 }
 
 var canLiveErrCount=0;
@@ -1708,17 +1712,22 @@ function toggleLang(){
    ═══════════════════════════════════════════════════ */
 var theme=localStorage.getItem('theme')||'dark';
 function applyTheme(){
-  var isLight=theme==='light';
+  var actual=theme;
+  if(theme==='auto')actual=window._autoThemeVal||'dark';
+  var isLight=actual==='light';
   document.documentElement.classList.toggle('light',isLight);
   document.body.classList.toggle('light',isLight);
-  $('iThemeBtn').textContent=isLight?'☀️':'🌙';
-  var mc=document.querySelector('meta[name=\"theme-color\"]');
+  $('iThemeBtn').textContent=theme==='auto'?'🔄':(isLight?'☀️':'🌙');
+  var mc=document.querySelector('meta[name="theme-color"]');
   if(mc)mc.setAttribute('content',isLight?'#f2f2f7':'#000000');
 }
 function toggleTheme(){
-  theme=theme==='dark'?'light':'dark';
+  theme=theme==='dark'?'light':theme==='light'?'auto':'dark';
   localStorage.setItem('theme',theme);
   applyTheme();
+  var labels={dark:'深色模式',light:'浅色模式',auto:'自动 (跟随车灯)'};
+  var labelsEn={dark:'Dark',light:'Light',auto:'Auto (headlights)'};
+  toast(lang==='zh'?labels[theme]:labelsEn[theme]);
 }
 
 /* ═══════════════════════════════════════════════════

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.4] - 2026-04-15
+
+### Added
+
+- Auto theme mode: cycle dark → light → auto with theme button; auto mode follows vehicle headlight state via CAN lightState signal
+
 ## [1.3.3] - 2026-04-14
 
 ### Fixed
