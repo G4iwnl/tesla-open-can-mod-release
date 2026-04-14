@@ -53,14 +53,13 @@ If FSD subscriptions are not available in your region, there is a workaround usi
 
 ## Supported Boards
 
-| Board                                                                   | CAN Interface              | Library                      | Status                             | Case STL |
-|-------------------------------------------------------------------------|----------------------------|------------------------------|------------------------------------|----------|
-| Adafruit Feather RP2040 CAN                                             | MCP2515 over SPI           | `mcp2515.h` (autowp)         | Tested                             | [Printables](https://www.printables.com/model/1662242-adafruit-rp2040-can-bus-feather-case-5724) |
-| Adafruit Feather M4 CAN Express (ATSAME51)                              | Native MCAN peripheral     | `Adafruit_CAN` (`CANSAME5x`) | Tested                             |          |
-| ESP32 with CAN transceiver (e.g. ESP32-DevKitC + SN65HVD230)            | Native TWAI peripheral     | ESP-IDF `driver/twai.h`      | Tested                             |          |
-| [Atomic CAN Base](https://docs.m5stack.com/en/atom/Atomic%20CAN%20Base) | CA-IS3050G over ESP32 TWAI | ESP32 TWAI                   | Tested                             |          |
-| Adafruit ESP32 Feather V2 (5400) + Adafruit CAN Bus Featherwing (5709)  | MCP2515 over SPI           | `mcp2515.h` (autowp)         | Tested                             |          |
-| [Waveshare ESP32-S3 RS485/CAN](https://www.waveshare.com/esp32-s3-rs485-can.htm) | SIT1050T over ESP32-S3 TWAI | ESP-IDF `driver/twai.h`     | Tested                             |          |
+| Board                                                                   | CAN Interface              | Status      |
+|-------------------------------------------------------------------------|----------------------------|-------------|
+| [Waveshare ESP32-S3 RS485/CAN](https://www.waveshare.com/esp32-s3-rs485-can.htm) | SIT1050T over ESP32-S3 TWAI | Recommended |
+| ESP32 with CAN transceiver (e.g. ESP32-DevKitC + SN65HVD230)            | Native TWAI peripheral     | Tested      |
+| [Atomic CAN Base](https://docs.m5stack.com/en/atom/Atomic%20CAN%20Base) | CA-IS3050G over ESP32 TWAI | Tested      |
+| M5Stack AtomS3 on CAN Base                                              | CA-IS3050G over ESP32-S3 TWAI | Tested   |
+| LilyGo T-CAN485                                                         | ESP32 TWAI + SN65HVD230   | Tested      |
 
 ## Installation
 

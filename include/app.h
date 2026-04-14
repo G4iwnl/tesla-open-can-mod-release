@@ -52,6 +52,23 @@ inline std::unique_ptr<CarManagerBase> createHandler(uint8_t hwMode)
 static std::unique_ptr<CanDriver> appDriver;
 static std::unique_ptr<CarManagerBase> appHandler;
 
+// Precomputed bitmask for O(1) handler filter ID lookup (covers 0-1023)
+static uint32_t handlerFilterMask[32] = {};
+
+static void buildFilterMask()
+{
+    memset(handlerFilterMask, 0, sizeof(handlerFilterMask));
+    if (!appHandler)
+        return;
+    const uint32_t *ids = appHandler->filterIds();
+    uint8_t count = appHandler->filterIdCount();
+    for (uint8_t i = 0; i < count; i++)
+    {
+        if (ids[i] < 1024)
+            handlerFilterMask[ids[i] >> 5] |= (1u << (ids[i] & 31));
+    }
+}
+
 static volatile bool frameReady = true;
 static void canISR() { frameReady = true; }
 
@@ -81,6 +98,7 @@ static void appSetup(std::unique_ptr<Driver> drv, const char *readyMsg)
         Serial.println(bootBuf);
     }
     appHandler = createHandler((uint8_t)hwModeRuntime);
+    buildFilterMask();
     {
         const char *hwName = (uint8_t)hwModeRuntime == 0 ? "LEGACY" : (uint8_t)hwModeRuntime == 1 ? "HW3"
                                                                                                   : "HW4";
@@ -93,8 +111,10 @@ static void appSetup(std::unique_ptr<Driver> drv, const char *readyMsg)
 #elif defined(RUNTIME_HW_SWITCH)
     // Native test path: just use HW4 by default
     appHandler = createHandler(2);
+    buildFilterMask();
 #else
     appHandler = std::make_unique<SelectedHandler>();
+    buildFilterMask();
 #endif
 
     pinMode(PIN_LED, OUTPUT);
@@ -173,19 +193,9 @@ static void appLoop()
         canMonitor.record(frame, millis());
 #endif
 
-        // Feed handler (only for IDs it cares about)
-        bool handlerCares = false;
-        const uint32_t *hIds = appHandler->filterIds();
-        uint8_t hCount = appHandler->filterIdCount();
-        for (uint8_t i = 0; i < hCount; i++)
-        {
-            if (hIds[i] == frame.id)
-            {
-                handlerCares = true;
-                break;
-            }
-        }
-        if (handlerCares)
+        // Feed handler (only for IDs it cares about) — O(1) bitmask check
+        if (frame.id < 1024 &&
+            (handlerFilterMask[frame.id >> 5] & (1u << (frame.id & 31))))
         {
             appHandler->frameCount++;
             appHandler->handleMessage(frame, *appDriver);

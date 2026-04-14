@@ -59,6 +59,14 @@ public:
 
     bool init()
     {
+        // Build O(1) bitmask from watch list (covers IDs 0-1023)
+        memset(watchMask_, 0, sizeof(watchMask_));
+        for (size_t i = 0; i < kWatchIdCount; i++)
+        {
+            uint16_t id = kWatchIds[i];
+            if (id < 1024)
+                watchMask_[id >> 5] |= (1u << (id & 31));
+        }
 #ifndef NATIVE_BUILD
         size_t avail = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
         size_t want = kTargetBytes;
@@ -85,11 +93,8 @@ public:
 
     bool isWatchedId(uint32_t id) const
     {
-        for (size_t i = 0; i < kWatchIdCount; i++)
-        {
-            if (kWatchIds[i] == id)
-                return true;
-        }
+        if (id < 1024)
+            return (watchMask_[id >> 5] & (1u << (id & 31))) != 0;
         return false;
     }
 
@@ -165,6 +170,7 @@ private:
     volatile uint32_t count_ = 0;
     bool inited_ = false;
     Shared<bool> enabled_{false};
+    uint32_t watchMask_[32] = {};  // bitmask for O(1) ID lookup (IDs 0-1023)
 };
 
 inline CanMonitor canMonitor;

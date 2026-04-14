@@ -14,11 +14,11 @@
 struct CanIdEntry
 {
     uint32_t id = 0;
-    uint8_t data[8] = {};
-    uint8_t dlc = 0;
     uint32_t last_ms = 0;   // last seen timestamp
     uint32_t count = 0;     // total frames seen
-    bool seen = false;
+    uint8_t data[8] = {};
+    uint8_t dlc = 0;
+    // 3 bytes padding → 24 bytes total (was 28 with bool seen)
 };
 
 class CanLive
@@ -26,34 +26,65 @@ class CanLive
 public:
     // Standard CAN = 11-bit ID = 0-2047, Tesla uses mostly < 0x500
     static constexpr size_t kMaxIds = 128;
+    // Direct lookup table: CAN ID → slot index (0xFF = unmapped)
+    // Covers 11-bit IDs 0-1023 which includes all Tesla CAN IDs.
+    static constexpr size_t kMapSize = 1024;
 
     void update(const CanFrame &frame, uint32_t now_ms)
     {
         if (!enabled_)
             return;
 
-        // Find existing slot or allocate new one
-        for (size_t i = 0; i < slotCount_; i++)
+        // O(1) lookup via direct-mapped table
+        if (frame.id < kMapSize)
         {
-            if (slots_[i].id == frame.id)
+            uint8_t idx = idxMap_[frame.id];
+            if (idx != 0xFF)
             {
-                slots_[i].dlc = frame.dlc;
-                memcpy(slots_[i].data, frame.data, 8);
-                slots_[i].last_ms = now_ms;
-                slots_[i].count++;
+                auto &s = slots_[idx];
+                s.dlc = frame.dlc;
+                memcpy(s.data, frame.data, 8);
+                s.last_ms = now_ms;
+                s.count++;
+                return;
+            }
+            // New ID — allocate slot
+            if (slotCount_ < kMaxIds)
+            {
+                uint8_t newIdx = static_cast<uint8_t>(slotCount_++);
+                idxMap_[frame.id] = newIdx;
+                auto &s = slots_[newIdx];
+                s.id = frame.id;
+                s.dlc = frame.dlc;
+                memcpy(s.data, frame.data, 8);
+                s.last_ms = now_ms;
+                s.count = 1;
                 return;
             }
         }
-        // New ID
-        if (slotCount_ < kMaxIds)
+        else
         {
-            auto &s = slots_[slotCount_++];
-            s.id = frame.id;
-            s.dlc = frame.dlc;
-            memcpy(s.data, frame.data, 8);
-            s.last_ms = now_ms;
-            s.count = 1;
-            s.seen = true;
+            // Rare: IDs >= 1024, fall back to linear search
+            for (size_t i = 0; i < slotCount_; i++)
+            {
+                if (slots_[i].id == frame.id)
+                {
+                    slots_[i].dlc = frame.dlc;
+                    memcpy(slots_[i].data, frame.data, 8);
+                    slots_[i].last_ms = now_ms;
+                    slots_[i].count++;
+                    return;
+                }
+            }
+            if (slotCount_ < kMaxIds)
+            {
+                auto &s = slots_[slotCount_++];
+                s.id = frame.id;
+                s.dlc = frame.dlc;
+                memcpy(s.data, frame.data, 8);
+                s.last_ms = now_ms;
+                s.count = 1;
+            }
         }
     }
 
@@ -83,12 +114,17 @@ public:
     {
         slotCount_ = 0;
         memset(slots_, 0, sizeof(slots_));
+        memset(idxMap_, 0xFF, sizeof(idxMap_));
     }
 
 private:
     CanIdEntry slots_[kMaxIds] = {};
     volatile size_t slotCount_ = 0;
     Shared<bool> enabled_{false};
+    uint8_t idxMap_[kMapSize];  // CAN ID → slot index, 0xFF = unmapped
+
+public:
+    CanLive() { memset(idxMap_, 0xFF, sizeof(idxMap_)); }
 };
 
 // ── Known signal decoders (inline, called from web handler) ─────────────────

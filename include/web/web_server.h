@@ -253,14 +253,6 @@ static bool rateLimitOk()
     return true;
 }
 
-static void addFeatureState(cJSON *parent, const char *name, bool supported, bool enabled, bool buildEnabled)
-{
-    cJSON *feature = cJSON_AddObjectToObject(parent, name);
-    cJSON_AddBoolToObject(feature, "supported", supported);
-    cJSON_AddBoolToObject(feature, "enabled", supported && enabled);
-    cJSON_AddBoolToObject(feature, "build_enabled", buildEnabled);
-}
-
 static bool parseToggleBody(httpd_req_t *req, bool &enabledOut)
 {
     char body[64];
@@ -372,67 +364,124 @@ static esp_err_t statusHandler(httpd_req_t *req)
     bool preheat = (bool)preheatRuntime;
     int hwMode = (int)(uint8_t)hwModeRuntime;
 
-    // Build JSON
-    cJSON *root = cJSON_CreateObject();
-    cJSON_AddBoolToObject(root, "fsd_enabled", fsdEnabled);
-    cJSON_AddBoolToObject(root, "bypass_tlssc_requirement", bypassTlssc);
-    cJSON_AddBoolToObject(root, "isa_speed_chime_suppress", isaSuppress);
-    cJSON_AddBoolToObject(root, "emergency_vehicle_detection", emergencyVehicleDetection);
-    cJSON_AddBoolToObject(root, "enhanced_autopilot", enhancedAutopilot);
-    cJSON_AddBoolToObject(root, "nag_killer", nagKiller);
-    cJSON_AddBoolToObject(root, "china_mode", chinaMode);
-    cJSON_AddBoolToObject(root, "profile_mode_auto", profileAuto);
-    cJSON_AddBoolToObject(root, "preheat", preheat);
-    cJSON_AddNumberToObject(root, "hw_mode", hwMode);
-    cJSON_AddNumberToObject(root, "speed_profile", speedProfile);
-    cJSON_AddNumberToObject(root, "speed_offset", speedOffset);
-    cJSON_AddBoolToObject(root, "speed_offset_manual", (bool)speedOffsetManualMode);
-    cJSON_AddBoolToObject(root, "smart_offset", (bool)smartOffsetEnabled);
-    cJSON_AddBoolToObject(root, "enable_print", enablePrint);
-    cJSON_AddNumberToObject(root, "uptime_s", millis() / 1000);
-    cJSON_AddNumberToObject(root, "log_head", logRing.currentHead());
-    cJSON_AddStringToObject(root, "version", FIRMWARE_VERSION);
-    cJSON_AddStringToObject(root, "ap_ssid", AP_SSID);
-    cJSON_AddStringToObject(root, "sta_ssid", gStaSsid);
+    // Build JSON with direct snprintf — single allocation replaces ~50 cJSON nodes
+    static constexpr size_t kBufSize = 8192;
+    char *buf = (char *)malloc(kBufSize);
+    if (!buf)
     {
-        IPAddress sta = WiFi.localIP();
-        char ipBuf[20];
-        snprintf(ipBuf, sizeof(ipBuf), "%u.%u.%u.%u", sta[0], sta[1], sta[2], sta[3]);
-        cJSON_AddStringToObject(root, "sta_ip", ipBuf);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OOM");
+        return ESP_FAIL;
     }
-    cJSON_AddBoolToObject(root, "sta_connected", WiFi.status() == WL_CONNECTED);
+    size_t pos = 0;
 
-    cJSON *features = cJSON_AddObjectToObject(root, "features");
-    addFeatureState(features, "bypass_tlssc_requirement", kBypassTlsscRequirementBuildEnabled, bypassTlssc, kBypassTlsscRequirementBuildEnabled);
-    addFeatureState(features, "isa_speed_chime_suppress",
-                    kWebSupportsIsaSpeedChimeSuppress, isaSuppress, kIsaSpeedChimeSuppressBuildEnabled);
-    addFeatureState(features, "emergency_vehicle_detection",
-                    kWebSupportsEmergencyVehicleDetection, emergencyVehicleDetection,
-                    kEmergencyVehicleDetectionBuildEnabled);
-    addFeatureState(features, "enhanced_autopilot",
-                    kWebSupportsEnhancedAutopilot, enhancedAutopilot,
-                    kEnhancedAutopilotBuildEnabled);
-    addFeatureState(features, "nag_killer", kWebSupportsNagKiller, nagKiller, kNagKillerBuildEnabled);
-    addFeatureState(features, "china_mode", true, chinaMode, true);
-    addFeatureState(features, "profile_mode_auto", true, profileAuto, true);
-    addFeatureState(features, "preheat", true, preheat, true);
-    addFeatureState(features, "ota", true, false, true);
+#define JS_APPEND(fmt, ...) \
+    do { \
+        int _n = snprintf(buf + pos, kBufSize - pos, fmt, ##__VA_ARGS__); \
+        if (_n > 0 && pos + (size_t)_n < kBufSize) pos += (size_t)_n; \
+    } while (0)
 
-    // Add log entries since last poll
+#define JS_BOOL(v) ((v) ? "true" : "false")
+
+#define JS_FEAT(name, sup, en, bld) \
+    JS_APPEND("\"" name "\":{\"supported\":%s,\"enabled\":%s,\"build_enabled\":%s}", \
+              JS_BOOL(sup), JS_BOOL((sup) && (en)), JS_BOOL(bld))
+
+    // Scalar fields
+    IPAddress sta = WiFi.localIP();
+    JS_APPEND("{\"fsd_enabled\":%s,"
+              "\"bypass_tlssc_requirement\":%s,"
+              "\"isa_speed_chime_suppress\":%s,"
+              "\"emergency_vehicle_detection\":%s,"
+              "\"enhanced_autopilot\":%s,"
+              "\"nag_killer\":%s,"
+              "\"china_mode\":%s,"
+              "\"profile_mode_auto\":%s,"
+              "\"preheat\":%s,"
+              "\"hw_mode\":%d,"
+              "\"speed_profile\":%d,"
+              "\"speed_offset\":%d,"
+              "\"speed_offset_manual\":%s,"
+              "\"smart_offset\":%s,"
+              "\"enable_print\":%s,"
+              "\"uptime_s\":%lu,"
+              "\"log_head\":%u,"
+              "\"version\":\"%s\","
+              "\"ap_ssid\":\"%s\","
+              "\"sta_ssid\":\"%s\","
+              "\"sta_ip\":\"%u.%u.%u.%u\","
+              "\"sta_connected\":%s,",
+              JS_BOOL(fsdEnabled), JS_BOOL(bypassTlssc), JS_BOOL(isaSuppress),
+              JS_BOOL(emergencyVehicleDetection), JS_BOOL(enhancedAutopilot),
+              JS_BOOL(nagKiller), JS_BOOL(chinaMode), JS_BOOL(profileAuto),
+              JS_BOOL(preheat), hwMode, speedProfile, speedOffset,
+              JS_BOOL((bool)speedOffsetManualMode), JS_BOOL((bool)smartOffsetEnabled),
+              JS_BOOL(enablePrint), millis() / 1000, logRing.currentHead(),
+              FIRMWARE_VERSION, AP_SSID, gStaSsid,
+              sta[0], sta[1], sta[2], sta[3],
+              JS_BOOL(WiFi.status() == WL_CONNECTED));
+
+    // Features object
+    JS_APPEND("\"features\":{");
+    JS_FEAT("bypass_tlssc_requirement", kBypassTlsscRequirementBuildEnabled, bypassTlssc, kBypassTlsscRequirementBuildEnabled);
+    JS_APPEND(",");
+    JS_FEAT("isa_speed_chime_suppress", kWebSupportsIsaSpeedChimeSuppress, isaSuppress, kIsaSpeedChimeSuppressBuildEnabled);
+    JS_APPEND(",");
+    JS_FEAT("emergency_vehicle_detection", kWebSupportsEmergencyVehicleDetection, emergencyVehicleDetection, kEmergencyVehicleDetectionBuildEnabled);
+    JS_APPEND(",");
+    JS_FEAT("enhanced_autopilot", kWebSupportsEnhancedAutopilot, enhancedAutopilot, kEnhancedAutopilotBuildEnabled);
+    JS_APPEND(",");
+    JS_FEAT("nag_killer", kWebSupportsNagKiller, nagKiller, kNagKillerBuildEnabled);
+    JS_APPEND(",");
+    JS_FEAT("china_mode", true, chinaMode, true);
+    JS_APPEND(",");
+    JS_FEAT("profile_mode_auto", true, profileAuto, true);
+    JS_APPEND(",");
+    JS_FEAT("preheat", true, preheat, true);
+    JS_APPEND(",");
+    JS_FEAT("ota", true, false, true);
+    JS_APPEND("},");
+
+    // Log entries since last poll
     LogRingBuffer::Entry logEntries[LogRingBuffer::kCapacity];
     int logCount = logRing.readSince(logSince, logEntries, LogRingBuffer::kCapacity);
-    cJSON *logs = cJSON_AddArrayToObject(root, "logs");
+    JS_APPEND("\"logs\":[");
     for (int i = 0; i < logCount; i++)
     {
-        cJSON *entry = cJSON_CreateObject();
-        cJSON_AddStringToObject(entry, "msg", logEntries[i].msg);
-        cJSON_AddNumberToObject(entry, "ts", logEntries[i].timestamp_ms);
-        cJSON_AddItemToArray(logs, entry);
+        if (i > 0)
+            JS_APPEND(",");
+        // Escape any quotes in log messages for JSON safety
+        JS_APPEND("{\"msg\":\"");
+        // Safe append: copy msg char-by-char, escaping special chars
+        const char *msg = logEntries[i].msg;
+        for (; *msg && pos + 6 < kBufSize; msg++)
+        {
+            if (*msg == '"')
+            {
+                buf[pos++] = '\\';
+                buf[pos++] = '"';
+            }
+            else if (*msg == '\\')
+            {
+                buf[pos++] = '\\';
+                buf[pos++] = '\\';
+            }
+            else if (*msg == '\n')
+            {
+                buf[pos++] = '\\';
+                buf[pos++] = 'n';
+            }
+            else
+            {
+                buf[pos++] = *msg;
+            }
+        }
+        JS_APPEND("\",\"ts\":%lu}", (unsigned long)logEntries[i].timestamp_ms);
     }
+    JS_APPEND("],");
 
     // CAN bus diagnostics
     twai_status_info_t twaiStatus;
-    cJSON *can = cJSON_AddObjectToObject(root, "can");
+    JS_APPEND("\"can\":{");
     if (twai_get_status_info(&twaiStatus) == ESP_OK)
     {
         const char *stateStr = "UNKNOWN";
@@ -451,34 +500,40 @@ static esp_err_t statusHandler(httpd_req_t *req)
             stateStr = "RECOVERING";
             break;
         }
-        cJSON_AddStringToObject(can, "state", stateStr);
-        cJSON_AddNumberToObject(can, "rx_errors", twaiStatus.rx_error_counter);
-        cJSON_AddNumberToObject(can, "tx_errors", twaiStatus.tx_error_counter);
-        cJSON_AddNumberToObject(can, "bus_errors", twaiStatus.bus_error_count);
-        cJSON_AddNumberToObject(can, "rx_missed", twaiStatus.rx_missed_count);
-        cJSON_AddNumberToObject(can, "rx_queued", twaiStatus.msgs_to_rx);
+        JS_APPEND("\"state\":\"%s\","
+                   "\"rx_errors\":%d,"
+                   "\"tx_errors\":%d,"
+                   "\"bus_errors\":%lu,"
+                   "\"rx_missed\":%lu,"
+                   "\"rx_queued\":%lu,",
+                   stateStr,
+                   (int)twaiStatus.rx_error_counter,
+                   (int)twaiStatus.tx_error_counter,
+                   (unsigned long)twaiStatus.bus_error_count,
+                   (unsigned long)twaiStatus.rx_missed_count,
+                   (unsigned long)twaiStatus.msgs_to_rx);
     }
     else
     {
-        cJSON_AddStringToObject(can, "state", "NO_DRIVER");
+        JS_APPEND("\"state\":\"NO_DRIVER\",");
     }
-    cJSON_AddNumberToObject(can, "frames_received",
-                            appHandler ? (uint32_t)appHandler->frameCount : 0);
-    cJSON_AddNumberToObject(can, "frames_sent",
-                            appHandler ? (uint32_t)appHandler->framesSent : 0);
+    JS_APPEND("\"frames_received\":%lu,\"frames_sent\":%lu},",
+              (unsigned long)(appHandler ? (uint32_t)appHandler->frameCount : 0),
+              (unsigned long)(appHandler ? (uint32_t)appHandler->framesSent : 0));
 
     // CAN Monitor status
-    cJSON *mon = cJSON_AddObjectToObject(root, "monitor");
-    cJSON_AddBoolToObject(mon, "inited", canMonitor.isInited());
-    cJSON_AddBoolToObject(mon, "enabled", canMonitor.isEnabled());
-    cJSON_AddNumberToObject(mon, "entries", canMonitor.entryCount());
-    cJSON_AddNumberToObject(mon, "capacity", canMonitor.capacity());
+    JS_APPEND("\"monitor\":{\"inited\":%s,\"enabled\":%s,\"entries\":%lu,\"capacity\":%lu}}",
+              JS_BOOL(canMonitor.isInited()), JS_BOOL(canMonitor.isEnabled()),
+              (unsigned long)canMonitor.entryCount(), (unsigned long)canMonitor.capacity());
 
-    char *json = cJSON_PrintUnformatted(root);
     httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);
-    free(json);
-    cJSON_Delete(root);
+    httpd_resp_send(req, buf, pos);
+    free(buf);
+
+#undef JS_APPEND
+#undef JS_BOOL
+#undef JS_FEAT
+
     return ESP_OK;
 }
 
