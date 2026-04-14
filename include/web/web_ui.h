@@ -589,7 +589,8 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
       <span id="bsUp" style="color:var(--text2)">0s</span>
     </span>
     <span class="pill-btn" style="cursor:default"><span class="conn-dot off" id="connDot"></span> <span id="iConn">--</span></span>
-    <button class="pill-btn" id="iLangBtn" onclick="toggleLang()">EN</button>\n    <button class="pill-btn" id="iThemeBtn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    <button class="pill-btn" id="iLangBtn" onclick="toggleLang()">EN</button>
+    <button class="pill-btn" id="iThemeBtn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
   </div>
 </header>
 
