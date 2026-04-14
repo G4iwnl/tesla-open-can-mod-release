@@ -1,0 +1,52 @@
+# Tesla WiFi IP Firewall
+# - IPv4: DNSONLY chain rebuilt from scratch + persistent whitelist IPs
+# - IPv6: block all forwarding (Tesla must not use IPv6)
+# - crond: ensure running (OpenWrt cron init only schedules reboot, not crond)
+
+# Auto-detect router LAN IP (for self-allow rule)
+ROUTER_IP=$(ip -4 addr show br-lan 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 | head -1)
+[ -z "$ROUTER_IP" ] && ROUTER_IP=$(ifconfig br-lan 2>/dev/null | awk '/inet addr/ {sub(/addr:/,"",$2); print $2}' | head -1)
+[ -z "$ROUTER_IP" ] && ROUTER_IP="192.168.2.254"
+
+# --- IPv4 DNSONLY chain: fully rebuild (detach, delete, recreate) ---
+while iptables -D FORWARD -j DNSONLY 2>/dev/null; do :; done
+iptables -F DNSONLY 2>/dev/null
+iptables -X DNSONLY 2>/dev/null
+iptables -N DNSONLY
+
+# Base rules
+iptables -A DNSONLY -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A DNSONLY -p udp --dport 53 -j ACCEPT
+iptables -A DNSONLY -p udp --sport 53 -j ACCEPT
+iptables -A DNSONLY -p tcp --dport 53 -j ACCEPT
+iptables -A DNSONLY -p tcp --sport 53 -j ACCEPT
+iptables -A DNSONLY -p udp --dport 67:68 -j ACCEPT
+iptables -A DNSONLY -p udp --dport 123 -j ACCEPT
+iptables -A DNSONLY -d "$ROUTER_IP" -j ACCEPT
+
+# HARDCODED connman fixed IP (always allowed, survives missing whitelist_ips.txt)
+iptables -A DNSONLY -d 116.129.226.175 -j ACCEPT
+
+# Additional persistent IPs (deduplicate against hardcoded 116)
+if [ -f /etc/whitelist_ips.txt ]; then
+  sort -u /etc/whitelist_ips.txt 2>/dev/null | while read ip; do
+    [ -z "$ip" ] && continue
+    [ "$ip" = "116.129.226.175" ] && continue
+    iptables -A DNSONLY -d "$ip" -j ACCEPT
+  done
+fi
+
+# Final DROP
+iptables -A DNSONLY -j DROP
+
+# Insert at top of FORWARD
+iptables -I FORWARD 1 -j DNSONLY
+
+# --- IPv6: block all forwarding ---
+while ip6tables -D FORWARD -j DROP 2>/dev/null; do :; done
+ip6tables -I FORWARD 1 -j DROP 2>/dev/null
+
+# --- Ensure crond is running (OpenWrt cron init only schedules reboot) ---
+if ! pgrep -x crond >/dev/null 2>&1; then
+  crond -c /etc/crontabs -b -L /tmp/cron.log
+fi

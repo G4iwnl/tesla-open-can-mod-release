@@ -1,0 +1,66 @@
+name: tesla-iso
+version: 1.0.3
+prev_version: 1.0.2
+release_date: 2026-04-08
+changelog: |
+  v1.0.3 - 模式切换 + 多项 BusyBox 兼容修复
+  - 🎚 新增 "运行模式" 切换功能 (web 顶部新区块)
+    - 🛡 保守版 (safe): 只放行 3 条系统例外 (connman + nav-prd-maps + maps-cn-prd)
+      可用: WiFi / 中国导航 / 在线音乐 / 微信通知
+      不可用: 手机 App 控车 / 媒体 / 语音助手
+      FSD 安全等级: 最高
+    - ⚡ 激进版 (aggressive): 保守版 + 4 条 (hermes-prd + signaling + media-server-me + www.tesla.cn)
+      可用: 保守版全部 + 手机 App 控车 + 语音助手 + Tesla 媒体
+      FSD 安全等级: 中
+    - ⚙ 自定义 (custom): 用户手动配置, 不属于任何预设
+    - 切换时弹 confirm 详细说明功能/风险
+    - 切换后自动重启 dnsmasq + 弹窗提示重启车机
+  - 🔧 修 BusyBox 1.22 pgrep -x 不工作的 bug
+    - api.sh / firewall.user / install.sh 全部 pgrep -x 改成 pidof
+    - 修复了 web 显示 "dnsmasq stopped" 但实际在跑的问题
+  - 🎨 按钮交互反馈 (按钮点击后有视觉反馈)
+    - 灰色"...中" → 绿色"✓ 已完成" → 1.5 秒后恢复
+    - 失败显示红色"✗ 失败" 2 秒
+    - 覆盖: 刷新数据 / 重启 dnsmasq / 立即扫描 / 添加例外 / 删除例外 / 放行
+  - 🐛 修 quickAllow 只填入框不真正提交的 bug
+    - 现在点"放行"按钮会立即提交并刷新所有列表
+  - 🐛 修 add_allow / del_allow 不刷新档案区块的 bug
+    - 现在删除/放行后档案区块的 ⚠/✅ 标签会同步更新
+  - 🐛 修 awk 误匹配注释里 "USER EXCEPTIONS BELOW" 的 bug
+    - 改成直接 append 到文件末尾, 避免 marker 冲突
+  - 🐛 add_allow / del_allow 加 confirm 弹窗确认
+  - 🔧 install.sh dnsmasq 自检加 retry-loop (最多 10 秒)
+    - 修复 procd 重启 dnsmasq 有延迟导致自检失败的问题
+  - 🔧 maps-cn-prd.go.tesla.services 加入系统例外保护清单 (不可删除)
+
+  v1.0.2 - 部署兼容性修复
+  - tesla-iso-httpd-init.sh 改用 uhttpd 替代 busybox httpd
+    (Hongdian TR341 等厂商定制版裁掉了 busybox httpd applet, 但内置了 OpenWrt 标准的 uhttpd)
+  - install.sh 依赖检查改成 uhttpd
+  - 修复 nav-prd-maps 的 CNAME 上游 maps-cn-prd.go.tesla.services 被错误屏蔽的问题
+
+  v1.0.1 - DNS 查询采集器
+  - 新增 tesla-iso-collector.sh: cron 每 5 分钟扫 dns.log, 增量记录车机查询过的 tesla 子域
+  - 持久化档案 /etc/tesla_iso/dns_seen.tsv (每小时 sync, flash 友好)
+  - 自动给疑似危险域名打 ⚠ 标
+  - 自动给已放行域名打 ✅ 标
+  - dns.log 自动截断到 2000 行
+  - Web 待审区块改造为"特斯拉子域档案"
+  - 排序 / 过滤 / 立即扫描 / 导出 TSV 等功能
+
+  v1.0.0 - 首个公开版本
+  - 黑名单模式: sinkhole 整个 *.tesla.cn / .com / .services / teslamotors.* 树
+  - 例外只放行 connman + nav-prd-maps
+  - busybox httpd web 控制台 (端口 8888, 仅 LAN 入站)
+  - 升级机制: web 上传 tar.gz 即可
+  - 自动备份 + 失败回滚
+
+files:
+  - etc/dnsmasq.conf
+  - etc/dnsmasq.d/tesla_iso.conf
+  - etc/firewall.user
+  - etc/tesla_iso/version
+  - usr/sbin/tesla-iso-httpd-init.sh
+  - usr/sbin/tesla-iso-collector.sh
+  - www-tesla/index.html
+  - www-tesla/cgi-bin/api.sh

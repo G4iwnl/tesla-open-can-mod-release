@@ -1,0 +1,60 @@
+# Tesla ISO - 防火墙补丁 v1.0
+# 此文件每次防火墙重载/路由器重启时执行
+#
+# 任务:
+#   1. IPv6 forward 全 DROP (防 dnsmasq IPv4 sinkhole 被 IPv6 绕过)
+#   2. 限制 web 控制台端口 8888 仅 LAN 入站
+#   3. 启动 crond (OpenWrt 厂商常把 cron init 改成只服务"定时重启")
+#   4. 启动 tesla-iso web httpd
+
+# --- 0. 双网段并存: 加 secondary IP 2.2.2.1/24 ---
+# Tesla 车机浏览器拒绝访问 RFC1918 私有 IP 段 (192.168.x.x),
+# 所以路由器需要一个"假公网" IP 让车机能访问 web 后台。
+# 选 2.2.2.0/24 (RIPE 段, 真实公网地址), 通过 br-lan secondary IP 接管,
+# 路由器自己拦截这个段所有流量,不会转发到真实公网。
+# 同时 ESP32 模块的固件静态 IP 也用 2.2.2.2/24, gateway = 2.2.2.1
+# 所以路由器要把 2.2.2.0/24 当成 connected 子网, /24 而不是 /32
+while ip addr del 2.2.2.1/32 dev br-lan 2>/dev/null; do :; done
+while ip addr del 2.2.2.1/24 dev br-lan 2>/dev/null; do :; done
+ip addr add 2.2.2.1/24 dev br-lan 2>/dev/null
+
+# --- 1. IPv6 全封堵 ---
+# Tesla 后端可能通过 IPv6 绕过 IPv4 dnsmasq sinkhole
+# 一刀切禁掉所有 IPv6 转发
+while ip6tables -D FORWARD -j DROP 2>/dev/null; do :; done
+ip6tables -I FORWARD 1 -j DROP 2>/dev/null
+
+# --- 2. Web 控制台仅内网入站 (RFC1918 源 IP) ---
+# 允许任意接口的 8888 入站,但源 IP 必须是 RFC1918 私有段:
+#   - 10.0.0.0/8
+#   - 172.16.0.0/12
+#   - 192.168.0.0/16
+# 这样无论从 br-lan / wlan / 其他内网接口都能访问,但公网 IP 仍被拒绝
+# 先清除所有旧规则 (包括上一版的 -i br-lan 规则)
+while iptables -D INPUT -p tcp --dport 8888 -i br-lan -j ACCEPT 2>/dev/null; do :; done
+while iptables -D INPUT -p tcp --dport 8888 -s 192.168.0.0/16 -j ACCEPT 2>/dev/null; do :; done
+while iptables -D INPUT -p tcp --dport 8888 -s 10.0.0.0/8 -j ACCEPT 2>/dev/null; do :; done
+while iptables -D INPUT -p tcp --dport 8888 -s 172.16.0.0/12 -j ACCEPT 2>/dev/null; do :; done
+while iptables -D INPUT -p tcp --dport 8888 -j DROP 2>/dev/null; do :; done
+# 顺序: ACCEPT 在前 (匹配 ACCEPT 立即放行), DROP 兜底
+# iptables -I INPUT 1 是头部插入,所以越后插入越在前
+iptables -I INPUT 1 -p tcp --dport 8888 -j DROP
+iptables -I INPUT 1 -p tcp --dport 8888 -s 192.168.0.0/16 -j ACCEPT
+iptables -I INPUT 1 -p tcp --dport 8888 -s 10.0.0.0/8 -j ACCEPT
+iptables -I INPUT 1 -p tcp --dport 8888 -s 172.16.0.0/12 -j ACCEPT
+
+# --- 3. 启动 crond (兜底, OpenWrt 厂商定制版常缺) ---
+if ! pidof crond >/dev/null 2>&1; then
+  crond -c /etc/crontabs -b -L /tmp/cron.log 2>/dev/null
+fi
+
+# --- 4. 启动 tesla-iso web httpd ---
+if [ -x /usr/sbin/tesla-iso-httpd-init.sh ]; then
+  /usr/sbin/tesla-iso-httpd-init.sh start 2>/dev/null
+fi
+
+# --- 5. 启动时把 dns_seen 持久化快照加载到 /tmp ---
+mkdir -p /tmp/tesla_iso 2>/dev/null
+if [ -f /etc/tesla_iso/dns_seen.tsv ] && [ ! -f /tmp/tesla_iso/dns_seen.tsv ]; then
+  cp /etc/tesla_iso/dns_seen.tsv /tmp/tesla_iso/dns_seen.tsv 2>/dev/null
+fi

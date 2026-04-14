@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Tesla ISO 控制台</title>
+<style>
+/* ============ Mobile-first base ============ */
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: rgba(0,0,0,0.05); }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 8px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============ Header ============ */
+header {
+  background: #1d1d1f;
+  color: #fff;
+  padding: 14px 16px;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+header h1 { font-size: 16px; font-weight: 600; flex: 1 1 auto; min-width: 0; }
+header .ver { font-size: 11px; opacity: 0.6; font-family: monospace; }
+header .nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.18);
+  padding: 6px 11px;
+  border-radius: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+header .nav-link:hover, header .nav-link:active { background: rgba(255,255,255,0.24); }
+
+/* ============ Section card ============ */
+section {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+section h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+section h2 .badge {
+  font-size: 10px;
+  font-weight: 400;
+  background: #e8e8ed;
+  color: #666;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* ============ Row (mobile: stacked) ============ */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f3;
+}
+.row:last-child { border-bottom: none; }
+.row .domain {
+  flex: 1 1 100%;
+  font-family: SF Mono, Menlo, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+  line-height: 1.35;
+}
+.row .note { color: #666; font-size: 12px; }
+.row .meta { color: #999; font-size: 11px; font-family: monospace; }
+.row .tag {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #f0f0f3;
+  color: #666;
+  display: inline-block;
+}
+.row .tag.sys { background: #fef3c7; color: #92400e; }
+.row .tag.user { background: #dbeafe; color: #1e40af; }
+.row .tag.warn { background: #ffe3e3; color: #c92a2a; }
+.row .tag.allowed { background: #d3f9d8; color: #2f9e44; }
+.row.warn { background: #fff5f5; margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; border-bottom-color: #ffe5e5; }
+.row.warn .domain { color: #c92a2a; font-weight: 500; }
+.row.allowed .domain { color: #2f9e44; }
+
+/* ============ Buttons (44px tap target) ============ */
+button {
+  background: #007aff;
+  color: #fff;
+  border: none;
+  padding: 11px 18px;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 44px;
+  -webkit-appearance: none;
+}
+button:active { opacity: 0.7; }
+button.secondary { background: #e8e8ed; color: #1d1d1f; }
+button.danger { background: #ff3b30; }
+button.btn-ok { background: #34c759 !important; color: #fff !important; }
+button.btn-bad { background: #ff3b30 !important; color: #fff !important; }
+button.btn-busy { background: #8e8e93 !important; color: #fff !important; }
+button.small {
+  padding: 8px 14px;
+  font-size: 13px;
+  min-height: 36px;
+  border-radius: 6px;
+}
+button:disabled { opacity: 0.4; }
+
+/* ============ Inputs ============ */
+input[type=text], input[type=file] {
+  border: 1px solid #d1d1d6;
+  border-radius: 8px;
+  padding: 11px 12px;
+  font-size: 16px; /* 16px 防 iOS 自动放大 */
+  font-family: inherit;
+  width: 100%;
+  min-height: 44px;
+  -webkit-appearance: none;
+  background: #fff;
+}
+input[type=file] {
+  padding: 9px 12px;
+}
+
+/* ============ Add row (mobile: stacked) ============ */
+.add-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0 4px 0;
+  border-top: 1px solid #f0f0f3;
+  margin-top: 8px;
+}
+.add-row button { width: 100%; }
+
+/* ============ Status grid (mobile: 2 cols) ============ */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.status-card {
+  background: #f5f5f7;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+.status-card .label { font-size: 11px; color: #666; margin-bottom: 4px; }
+.status-card .value { font-size: 15px; font-weight: 600; font-family: monospace; }
+.status-card .value.ok { color: #34c759; }
+.status-card .value.bad { color: #ff3b30; }
+
+/* ============ Log box ============ */
+pre.log {
+  background: #1d1d1f;
+  color: #d1d1d6;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-family: SF Mono, Menlo, monospace;
+  overflow-x: auto;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ============ Notice boxes ============ */
+.warning, .danger-box {
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+.warning {
+  background: #fff8e1;
+  border-left: 3px solid #ffc107;
+  color: #5d4037;
+}
+.danger-box {
+  background: #ffebee;
+  border-left: 3px solid #ff3b30;
+  color: #b71c1c;
+}
+.warning code { background: rgba(0,0,0,0.05); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+.empty { color: #999; padding: 20px; text-align: center; font-size: 13px; }
+
+/* ============ Toolbar (filter / sort) ============ */
+.toolbar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+.toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: #f5f5f7;
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 36px;
+}
+.toolbar input[type=checkbox] { width: 16px; height: 16px; }
+.stats-line { font-size: 12px; color: #666; margin-bottom: 8px; line-height: 1.4; }
+
+/* ============ Mode switcher ============ */
+.mode-card {
+  background: linear-gradient(135deg, #f5f5f7 0%, #e8e8ed 100%);
+  padding: 14px 16px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+.mode-current {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 10px;
+}
+.mode-current b {
+  color: #1d1d1f;
+  font-size: 14px;
+}
+.mode-buttons {
+  display: flex;
+  gap: 8px;
+}
+.mode-btn {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  border: 2px solid transparent;
+  background: #fff;
+  color: #1d1d1f;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+.mode-btn .name { font-size: 14px; font-weight: 600; }
+.mode-btn .desc { font-size: 11px; color: #666; font-weight: 400; }
+.mode-btn.active {
+  background: #007aff;
+  color: #fff;
+  border-color: #007aff;
+}
+.mode-btn.active .desc { color: rgba(255,255,255,0.85); }
+.mode-btn:not(.active):active { background: #f0f0f3; }
+.mode-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ============ Status section button row ============ */
+.status-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.status-actions button { flex: 1; min-width: 120px; }
+
+/* ============ Tablet & Desktop ============ */
+@media (min-width: 700px) {
+  body { padding: 16px; max-width: 900px; margin: 0 auto; font-size: 14px; }
+  header { padding: 16px 20px; }
+  header h1 { font-size: 18px; }
+  section { padding: 18px 22px; }
+  section h2 { font-size: 16px; }
+  .row { flex-wrap: nowrap; padding: 9px 0; }
+  .row .domain { flex: 1 1 auto; font-size: 12px; }
+  .row.warn { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+  .add-row { flex-direction: row; }
+  .add-row input[type=text] { flex: 1; }
+  .add-row button { width: auto; }
+  .status-grid { grid-template-columns: repeat(4, 1fr); }
+  pre.log { font-size: 11px; max-height: 240px; }
+  button { font-size: 14px; padding: 9px 16px; min-height: 40px; }
+  button.small { font-size: 12px; padding: 6px 12px; min-height: 32px; }
+  input[type=text], input[type=file] { font-size: 14px; min-height: 40px; padding: 9px 12px; }
+}
+.upgrade-progress {
+  background: #1d1d1f;
+  color: #34c759;
+  padding: 12px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 11px;
+  margin-top: 12px;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.muted { color: #999; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔒 Tesla ISO 控制台</h1>
+  <a href="http://2.2.2.2/" class="nav-link" title="Tesla CAN Mod 模块配置">⚙ 模块配置</a>
+  <a href="http://2.2.2.1/" class="nav-link" title="路由器后台 (LuCI)">🛠 路由设置</a>
+  <span class="ver">v<span id="ver">-</span></span>
+</header>
+
+<section>
+  <h2>🎚 运行模式</h2>
+  <div class="mode-card">
+    <div class="mode-current">当前模式：<b id="mode-label">-</b><span id="mode-detail" style="color:#999"></span></div>
+    <div class="mode-buttons">
+      <div class="mode-btn" id="mode-safe-btn" onclick="switchMode('safe', this)">
+        <span class="name">🛡 保守版</span>
+        <span class="desc">音乐/地图/WiFi · 最大化保 FSD</span>
+      </div>
+      <div class="mode-btn" id="mode-agg-btn" onclick="switchMode('aggressive', this)">
+        <span class="name">⚡ 激进版</span>
+        <span class="desc">+ 手机 App 控车 + 语音助手</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>📊 系统状态</h2>
+  <div class="status-grid">
+    <div class="status-card">
+      <div class="label">dnsmasq</div>
+      <div class="value" id="st-dnsmasq">-</div>
+    </div>
+    <div class="status-card">
+      <div class="label">crond</div>
+      <div class="value" id="st-crond">-</div>
+    </div>
+    <div class="status-card">
+      <div class="label">在线设备</div>
+      <div class="value" id="st-devices">-</div>
+    </div>
+    <div class="status-card">
+      <div class="label">例外数</div>
+      <div class="value" id="st-allowcount">-</div>
+    </div>
+  </div>
+  <div class="status-actions">
+    <button class="secondary small" onclick="doAction(this, '重启中...', '✓ 已重启', restartDnsmasqQuiet)">重启 dnsmasq</button>
+    <button class="secondary small" onclick="doAction(this, '刷新中...', '✓ 已刷新', loadAll)">刷新数据</button>
+  </div>
+</section>
+
+<section>
+  <h2>✅ Tesla 子域例外放行 <span class="badge">优先级最高</span></h2>
+  <div class="warning">
+    所有 <code>*.tesla.cn / *.tesla.com / *.teslamotors.com / *.tesla.services</code> 默认被屏蔽。
+    下面列出的是放行的例外。系统例外不可删除。
+  </div>
+  <div id="allow-list"></div>
+  <div class="add-row">
+    <input type="text" id="add-domain" placeholder="完整域名 例: api.tesla.cn">
+    <input type="text" id="add-note" placeholder="备注 (可选)" style="max-width:180px">
+    <button onclick="addAllow(this)">添加例外</button>
+  </div>
+</section>
+
+<section>
+  <h2>🔍 Tesla 子域档案 <span class="badge">collector 持久化</span></h2>
+  <div class="muted" style="font-size:12px;margin-bottom:8px">
+    每 5 分钟扫描一次车机 DNS 查询，记录所有 <code>*.tesla.* / *.teslamotors.*</code> 的子域。
+    <strong>⚠ 红色</strong>表示命中危险关键词 (hermes / api-prd / telemetry / trigger / x2 / config / mothership 等)，强烈不建议放行。
+    <strong>✅ 绿色</strong>表示已在例外列表里。
+  </div>
+  <div class="stats-line" id="seen-stats">-</div>
+  <div class="toolbar">
+    <button class="secondary small" onclick="setSeenSort('count')">按次数</button>
+    <button class="secondary small" onclick="setSeenSort('first')">按首次</button>
+    <button class="secondary small" onclick="setSeenSort('last')">按最后</button>
+    <label><input type="checkbox" id="filter-warn" onchange="renderSeen()"> 仅看 ⚠</label>
+    <label><input type="checkbox" id="filter-other" onchange="renderSeen()" checked> 普通</label>
+    <label><input type="checkbox" id="filter-allowed" onchange="renderSeen()"> 已放行</label>
+    <button class="secondary small" onclick="doAction(this, '扫描中...', '✓ 已扫描', runCollectorQuiet)">立即扫描</button>
+    <button class="secondary small" onclick="exportSeen()">导出 TSV</button>
+  </div>
+  <div id="seen-list"></div>
+</section>
+
+<section>
+  <h2>📜 最近 DNS 日志 <span class="badge">尾 30 行</span></h2>
+  <pre class="log" id="log-pre">-</pre>
+</section>
+
+<section>
+  <h2>📦 升级 / 回滚</h2>
+  <div class="warning">
+    升级包格式 <code>tesla-iso-x.x.x.tar.gz</code>。
+    上传前请确认从可信渠道获取。升级会自动备份当前版本，失败可回滚。
+  </div>
+  <div class="add-row">
+    <input type="file" id="pkg-file" accept=".tar.gz,.tgz">
+    <button onclick="uploadPkg()">上传并升级</button>
+  </div>
+  <div id="upgrade-status"></div>
+
+  <h2 style="margin-top:24px">历史版本（可回滚）</h2>
+  <div id="version-list"></div>
+</section>
+
+<section>
+  <h2>📖 安装后请务必</h2>
+  <div class="danger-box">
+    <strong>⚠️ 关键步骤</strong>：首次安装本方案后，请将 Tesla 车机执行<strong>一次重启</strong>（按住方向盘左右两个滚轮 10 秒）。
+    这是为了清除车机内的旧 DNS 缓存和已建立的 hermes 长连接，让屏蔽规则立即生效。否则在缓存过期前 (最多 5 分钟) 仍可能存在通信窗口。
+  </div>
+  <div class="warning">
+    <strong>使用规则</strong>：
+    <ul style="margin-left:16px;margin-top:6px">
+      <li>Tesla 车机<strong>只</strong>连接本路由器的 WiFi，不要连任何家用/公司/商场 WiFi</li>
+      <li>禁用车机 4G 数据 (设置 → 网络 → 数据)，否则走蜂窝绕过 WiFi</li>
+      <li>不要清除车机存储或恢复出厂 (会重新拉取 vehicle config)</li>
+    </ul>
+  </div>
+</section>
+
+<script>
+const API = '/cgi-bin/api.sh';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// 通用按钮反馈: 点击 → 灰色禁用+改文字 → 跑函数 → 成功绿色1.5s / 失败红色2s → 恢复
+async function doAction(btn, busyText, doneText, fn) {
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = busyText;
+  btn.classList.add('btn-busy');
+  try {
+    await fn();
+    btn.textContent = doneText;
+    btn.classList.remove('btn-busy');
+    btn.classList.add('btn-ok');
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.remove('btn-ok');
+      btn.disabled = false;
+    }, 1500);
+  } catch (e) {
+    console.error(e);
+    btn.textContent = '✗ 失败';
+    btn.classList.remove('btn-busy');
+    btn.classList.add('btn-bad');
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.remove('btn-bad');
+      btn.disabled = false;
+    }, 2000);
+  }
+}
+
+async function api(action, opts={}) {
+  const url = `${API}?action=${action}`;
+  const r = await fetch(url, opts);
+  const text = await r.text();
+  try { return JSON.parse(text); } catch(e) { return { _raw: text, _err: e.message }; }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function loadStatus() {
+  const s = await api('status');
+  document.getElementById('ver').textContent = s.version || '?';
+  setStat('st-dnsmasq', s.dnsmasq, s.dnsmasq === 'running');
+  setStat('st-crond', s.crond, s.crond === 'running');
+  document.getElementById('st-devices').textContent = s.devices || '0';
+  document.getElementById('st-allowcount').textContent = s.allow_count || '0';
+  updateModeUI(s.mode || 'custom');
+}
+
+function updateModeUI(mode) {
+  const labelEl = document.getElementById('mode-label');
+  const detailEl = document.getElementById('mode-detail');
+  const safeBtn = document.getElementById('mode-safe-btn');
+  const aggBtn = document.getElementById('mode-agg-btn');
+  safeBtn.classList.remove('active');
+  aggBtn.classList.remove('active');
+  if (mode === 'safe') {
+    labelEl.textContent = '🛡 保守版';
+    detailEl.textContent = ' (3 个例外)';
+    safeBtn.classList.add('active');
+  } else if (mode === 'aggressive') {
+    labelEl.textContent = '⚡ 激进版';
+    detailEl.textContent = ' (7 个例外)';
+    aggBtn.classList.add('active');
+  } else {
+    labelEl.textContent = '⚙ 自定义';
+    detailEl.textContent = ' (手动配置)';
+  }
+}
+function setStat(id, txt, ok) {
+  const el = document.getElementById(id);
+  el.textContent = txt || '-';
+  el.className = 'value ' + (ok ? 'ok' : 'bad');
+}
+
+async function loadAllow() {
+  const r = await api('list_allow');
+  const list = r.items || [];
+  const c = document.getElementById('allow-list');
+  if (list.length === 0) { c.innerHTML = '<div class="empty">无例外</div>'; return; }
+  c.innerHTML = list.map(x => `
+    <div class="row">
+      <span class="domain">${escapeHtml(x.domain)}</span>
+      <span class="note">${escapeHtml(x.note || '')}</span>
+      <span class="tag ${x.type === 'system' ? 'sys' : 'user'}">${x.type === 'system' ? '系统' : '用户'}</span>
+      ${x.type === 'system' ? '' : `<button class="danger small" onclick="delAllow(this, '${escapeHtml(x.domain)}')">删除</button>`}
+    </div>`).join('');
+}
+
+let seenData = [];
+let seenSort = 'count';
+
+async function loadSeen() {
+  const r = await api('list_seen');
+  seenData = r.items || [];
+  renderSeen();
+}
+
+function setSeenSort(by) { seenSort = by; renderSeen(); }
+
+function renderSeen() {
+  const c = document.getElementById('seen-list');
+  const stats = document.getElementById('seen-stats');
+  const showWarn    = document.getElementById('filter-warn').checked;
+  const showOther   = document.getElementById('filter-other').checked;
+  const showAllowed = document.getElementById('filter-allowed').checked;
+
+  let total = seenData.length;
+  let warnCount = seenData.filter(x => x.note === 'WARN').length;
+  let allowedCount = seenData.filter(x => x.note === 'ALLOWED').length;
+  let otherCount = total - warnCount - allowedCount;
+
+  let list = seenData.filter(x => {
+    if (x.note === 'WARN' && !showWarn) return false;
+    if (x.note === 'ALLOWED' && !showAllowed) return false;
+    if (!x.note && !showOther) return false;
+    return true;
+  });
+
+  list.sort((a,b) => {
+    if (seenSort === 'count') return (b.count || 0) - (a.count || 0);
+    if (seenSort === 'first') return (b.first || '').localeCompare(a.first || '');
+    if (seenSort === 'last') return (b.last || '').localeCompare(a.last || '');
+    return 0;
+  });
+
+  stats.textContent = `共 ${total} 条 (⚠ ${warnCount} / ✅ ${allowedCount} / 普通 ${otherCount}) — 显示 ${list.length} 条`;
+
+  if (list.length === 0) {
+    c.innerHTML = '<div class="empty">暂无数据 (车机刚装方案? 等 5 分钟 collector 第一次跑完, 或点"立即扫描")</div>';
+    return;
+  }
+
+  c.innerHTML = list.map(x => {
+    const cls = x.note === 'WARN' ? 'warn' : (x.note === 'ALLOWED' ? 'allowed' : '');
+    const tagHtml = x.note === 'WARN'
+      ? '<span class="tag warn">⚠ 危险</span>'
+      : (x.note === 'ALLOWED' ? '<span class="tag allowed">✅ 已放行</span>' : '');
+    const btnHtml = x.note === 'ALLOWED'
+      ? ''
+      : `<button class="secondary small" onclick="quickAllow(this, '${escapeHtml(x.domain)}')">放行</button>`;
+    return `
+      <div class="row ${cls}">
+        <span class="domain">${escapeHtml(x.domain)}</span>
+        ${tagHtml}
+        <span class="meta">${x.count}次</span>
+        <span class="meta">${escapeHtml(x.last || '')}</span>
+        ${btnHtml}
+      </div>`;
+  }).join('');
+}
+
+async function runCollector() {
+  const r = await api('run_collector', { method:'POST' });
+  if (r.ok) {
+    await loadSeen();
+  } else {
+    alert('扫描失败: ' + (r.error || '未知'));
+  }
+}
+
+// 给按钮反馈版本
+async function runCollectorQuiet() {
+  const r = await api('run_collector', { method:'POST' });
+  if (!r.ok) throw new Error(r.error || 'collector failed');
+  await loadSeen();
+}
+
+function exportSeen() {
+  window.location.href = `${API}?action=export_seen`;
+}
+
+// 兼容旧名字
+async function loadPending() { return loadSeen(); }
+
+async function loadLog() {
+  const r = await api('log_tail');
+  document.getElementById('log-pre').textContent = r.lines ? r.lines.join('\n') : (r._raw || '-');
+}
+
+async function loadVersions() {
+  const r = await api('list_versions');
+  const list = r.items || [];
+  const c = document.getElementById('version-list');
+  if (list.length === 0) { c.innerHTML = '<div class="empty">无历史备份</div>'; return; }
+  c.innerHTML = list.map(x => `
+    <div class="row">
+      <span class="domain">${escapeHtml(x.version)}</span>
+      <span class="meta">${escapeHtml(x.time)}</span>
+      <button class="secondary small" onclick="rollback('${escapeHtml(x.dir)}')">回滚</button>
+    </div>`).join('');
+}
+
+async function loadAll() {
+  await Promise.all([loadStatus(), loadAllow(), loadSeen(), loadLog(), loadVersions()]);
+}
+
+async function addAllow(btn) {
+  const domain = document.getElementById('add-domain').value.trim();
+  const note = document.getElementById('add-note').value.trim();
+  if (!domain) { alert('请输入域名'); return; }
+  if (!/^[a-z0-9._-]+\.(tesla\.(cn|com|services)|teslamotors\.(cn|com))$/.test(domain)) {
+    alert('域名必须是 tesla.cn / tesla.com / teslamotors.com / tesla.services 的子域');
+    return;
+  }
+  if (!confirm(`确认添加例外:\n\n${domain}\n\n备注: ${note || '(无)'}\n\n这会立即生效。建议添加后重启车机一次清 DNS 缓存。`)) return;
+  await doAction(btn, '添加中...', '✓ 已添加', async () => {
+    const body = `domain=${encodeURIComponent(domain)}&note=${encodeURIComponent(note)}`;
+    const r = await api('add_allow', { method:'POST', body, headers:{'Content-Type':'application/x-www-form-urlencoded'} });
+    if (!r.ok) throw new Error(r.error || '添加失败');
+    document.getElementById('add-domain').value = '';
+    document.getElementById('add-note').value = '';
+  });
+  // 等按钮反馈显示完再刷新
+  await sleep(1600);
+  try { await api('run_collector', { method:'POST' }); } catch(e) {}
+  await Promise.all([loadAllow(), loadSeen(), loadStatus()]);
+}
+
+async function quickAllow(btn, domain) {
+  if (!confirm(`确认放行:\n\n${domain}\n\n这会立即添加到例外列表并 reload dnsmasq。建议放行后重启车机一次清缓存。`)) return;
+  await doAction(btn, '放行中...', '✓ 已放行', async () => {
+    const body = `domain=${encodeURIComponent(domain)}&note=${encodeURIComponent('从待审快速放行')}`;
+    const r = await api('add_allow', { method:'POST', body, headers:{'Content-Type':'application/x-www-form-urlencoded'} });
+    if (!r.ok) throw new Error(r.error || '放行失败');
+  });
+  // 等按钮反馈显示完再刷新
+  await sleep(1600);
+  try { await api('run_collector', { method:'POST' }); } catch(e) {}
+  await Promise.all([loadAllow(), loadSeen(), loadStatus()]);
+}
+
+async function delAllow(btn, domain) {
+  if (!confirm(`确认删除例外:\n\n${domain}\n\n删除后该域名会立即被 sinkhole 屏蔽。`)) return;
+  await doAction(btn, '删除中...', '✓ 已删除', async () => {
+    const body = `domain=${encodeURIComponent(domain)}`;
+    const r = await api('del_allow', { method:'POST', body, headers:{'Content-Type':'application/x-www-form-urlencoded'} });
+    if (!r.ok) throw new Error(r.error || '删除失败');
+  });
+  await sleep(1600);
+  try { await api('run_collector', { method:'POST' }); } catch(e) {}
+  await Promise.all([loadAllow(), loadSeen(), loadStatus()]);
+}
+
+async function restartDnsmasq() {
+  if (!confirm('重启 dnsmasq？短暂期间无法解析 DNS。')) return;
+  const r = await api('restart_dnsmasq', { method:'POST' });
+  alert(r.ok ? '已重启' : ('失败: ' + (r.error || '未知')));
+  loadStatus();
+}
+
+// 给按钮反馈版本: 不弹 confirm 不弹 alert, 直接做
+async function restartDnsmasqQuiet() {
+  const r = await api('restart_dnsmasq', { method:'POST' });
+  if (!r.ok) throw new Error(r.error || 'restart failed');
+  await loadStatus();
+}
+
+// 切换运行模式
+async function switchMode(mode, btn) {
+  const safeDesc =
+    '🛡 保守版 (safe)\n\n' +
+    '只放行 3 条 Tesla 系统例外:\n' +
+    '  • connman.vn.cloud.tesla.cn (WiFi 验证)\n' +
+    '  • nav-prd-maps.tesla.cn (中国导航)\n' +
+    '  • maps-cn-prd.go.tesla.services (导航 CNAME)\n\n' +
+    '✅ 可用功能:\n' +
+    '  • WiFi 连接\n' +
+    '  • Tesla 中国导航 (含路口放大图)\n' +
+    '  • 在线音乐 (QQ 音乐/网易云/百度等)\n' +
+    '  • 微信通知\n' +
+    '  • 第三方地图 (百度/高德跳转)\n\n' +
+    '❌ 不可用:\n' +
+    '  • 手机 App 控车\n' +
+    '  • Tesla 自带媒体 (剧院模式)\n' +
+    '  • 语音助手 (小 T)\n' +
+    '  • OTA 升级\n\n' +
+    '🔒 FSD 安全等级: 最高 (所有 Tesla 命令通道全屏蔽)';
+  const aggDesc =
+    '⚡ 激进版 (aggressive)\n\n' +
+    '在保守版基础上 +4 条 Tesla 例外:\n' +
+    '  • hermes-prd.vn.cloud.tesla.cn (手机 App 控车主通道)\n' +
+    '  • signaling.vn.cloud.tesla.cn (Hermes 信令握手)\n' +
+    '  • media-server-me.tesla.cn (Tesla 媒体服务)\n' +
+    '  • www.tesla.cn (官网链接)\n\n' +
+    '✅ 可用功能: 保守版全部 +\n' +
+    '  • 手机 App 解锁/锁车/远程空调/查询状态\n' +
+    '  • 语音助手 (小 T)\n' +
+    '  • Tesla 自带媒体服务\n' +
+    '  • Tesla 官网跳转\n\n' +
+    '⚠️ 仍不可用:\n' +
+    '  • Tesla 实时路况遥测\n' +
+    '  • OTA 升级\n\n' +
+    '🟡 FSD 安全等级: 中 (hermes-prd 是命令通道, 但 revoke\n' +
+    '链路上其他协同节点 trigger/api-prd/telemetry 仍被屏蔽)\n\n' +
+    '建议先在自己的车上跑 24-48 小时观察 FSD 状态再分享';
+
+  const desc = mode === 'safe' ? safeDesc : aggDesc;
+  if (!confirm(`切换到 ${mode === 'safe' ? '保守版' : '激进版'} ?\n\n${desc}\n\n切换后会重写 dnsmasq 例外列表 + 重启 dnsmasq + 建议重启车机一次清缓存。`)) return;
+
+  const origText = btn.querySelector('.name').textContent;
+  btn.querySelector('.name').textContent = '切换中...';
+  btn.style.opacity = '0.6';
+  document.getElementById('mode-safe-btn').onclick = null;
+  document.getElementById('mode-agg-btn').onclick = null;
+
+  try {
+    const body = `mode=${encodeURIComponent(mode)}`;
+    const r = await api('switch_mode', { method:'POST', body, headers:{'Content-Type':'application/x-www-form-urlencoded'} });
+    if (!r.ok) throw new Error(r.error || '切换失败');
+    btn.querySelector('.name').textContent = '✓ 已切换';
+    await sleep(1200);
+    await loadAll();
+    alert('切换成功！\n\n建议立即重启 Tesla 车机一次（按住方向盘左右滚轮 10 秒），让车机清掉旧 DNS 缓存，新规则才能立即生效。');
+  } catch(e) {
+    btn.querySelector('.name').textContent = '✗ 失败';
+    alert('切换失败: ' + e.message);
+  } finally {
+    btn.style.opacity = '';
+    btn.querySelector('.name').textContent = origText;
+    document.getElementById('mode-safe-btn').onclick = () => switchMode('safe', document.getElementById('mode-safe-btn'));
+    document.getElementById('mode-agg-btn').onclick = () => switchMode('aggressive', document.getElementById('mode-agg-btn'));
+  }
+}
+
+async function uploadPkg() {
+  const f = document.getElementById('pkg-file').files[0];
+  if (!f) { alert('请选择文件'); return; }
+  const status = document.getElementById('upgrade-status');
+  status.innerHTML = '<div class="upgrade-progress">上传中...</div>';
+  try {
+    const r = await fetch(`${API}?action=upload_pkg&name=${encodeURIComponent(f.name)}`, {
+      method: 'POST',
+      body: f,
+      headers: { 'Content-Type': 'application/octet-stream' }
+    });
+    const j = await r.json();
+    if (!j.ok) { status.innerHTML = `<div class="upgrade-progress">上传失败: ${escapeHtml(j.error||'')}</div>`; return; }
+    status.innerHTML = '<div class="upgrade-progress">上传成功，开始安装升级...\n（升级期间 web 会重启，几秒后请手动刷新本页）</div>';
+    // 触发安装
+    const r2 = await fetch(`${API}?action=install_upgrade`, { method:'POST' });
+    const j2 = await r2.json().catch(()=>({}));
+    if (j2.log) {
+      status.innerHTML = `<div class="upgrade-progress">${escapeHtml(j2.log)}</div>`;
+    } else {
+      status.innerHTML += '\n升级已触发，请稍候手动刷新页面查看版本号';
+    }
+  } catch(e) {
+    status.innerHTML = `<div class="upgrade-progress">异常: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function rollback(dir) {
+  if (!confirm(`确认回滚到 ${dir}?`)) return;
+  const body = `dir=${encodeURIComponent(dir)}`;
+  const r = await api('rollback', { method:'POST', body, headers:{'Content-Type':'application/x-www-form-urlencoded'} });
+  alert(r.ok ? '已回滚，请刷新页面' : ('失败: ' + (r.error || '未知')));
+}
+
+loadAll();
+setInterval(loadStatus, 10000);
+</script>
+
+</body>
+</html>
