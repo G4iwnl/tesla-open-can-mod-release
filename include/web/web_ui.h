@@ -949,6 +949,7 @@ zh:{
   otaConfirm:'确定刷入此固件并重启设备？',
 
   modalOk:'确认',modalCancel:'取消',modalErr:'操作失败',
+  smartEditTitle:'编辑智能偏移规则',
   langBtn:'EN',
 
   bsCanState:'CAN',bsUp:'运行',bsErr:'错误'
@@ -1024,6 +1025,7 @@ en:{
   otaConfirm:'Flash this firmware and reboot the device?',
 
   modalOk:'OK',modalCancel:'Cancel',modalErr:'Operation failed',
+  smartEditTitle:'Edit Smart Offset Rules',
   langBtn:'中文',
 
   bsCanState:'CAN',bsUp:'UP',bsErr:'ERR'
