@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-04-14
+
+### Fixed
+
+- Fixed smart offset rule editor modal title showing raw i18n key
+
+### Changed
+
+- Updated default smart offset rules to 4 tiers: ≤40→50%, 50→30%, 60→20%, 80-120→10%
+
 ## [1.3.2] - 2026-04-14
 
 ### Added
