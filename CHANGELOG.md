@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.5] - 2026-04-15
+
+### Changed
+
+- Removed manual theme toggle button; theme now always auto-follows vehicle headlight state
+
 ## [1.3.4] - 2026-04-15
 
 ### Added
