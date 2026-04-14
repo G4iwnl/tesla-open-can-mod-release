@@ -349,6 +349,10 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
 .txt::placeholder{color:var(--text3)}
 .field-stack{display:flex;flex-direction:column;gap:5px;margin:8px 0}
 .field-stack label{font-size:12px;color:var(--text2);font-weight:600;letter-spacing:.3px}
+.sr-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.sr-row .txt{width:auto;flex:1;padding:8px 10px;font-size:14px;text-align:center}
+.sr-del{min-width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text3)}
+.sr-del:hover{color:#ff453a}
 
 /* ── File / OTA ─────────────────────────────────── */
 .file-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
@@ -1210,33 +1214,57 @@ function loadSmartRules(){
 async function editSmartRules(){
   var r=await fetch('/api/smart-offset');
   var d=await r.json();
-  var lines='';
+  var rows='';
   for(var i=0;i<d.rules.length;i++){
-    lines+=d.rules[i].maxSpeed+','+d.rules[i].offsetPct+'\n';
+    rows+=smartRuleRow(i,d.rules[i].maxSpeed,d.rules[i].offsetPct);
   }
   var html='<div class="modal-form">'
-    +'<label>每行一条: 限速上限,偏移百分比</label>'
-    +'<textarea class="txt" id="rfRules" rows="6" style="font-family:monospace;font-size:14px">'+lines.trim()+'</textarea>'
-    +'<div style="font-size:12px;color:var(--text3)">例: 50,50 表示限速&lt;50时偏移50%</div>'
+    +'<div style="display:flex;gap:6px;font-size:12px;color:var(--text3);font-weight:600">'
+    +'<span style="flex:1">限速上限 (km/h)</span><span style="flex:1">偏移 %</span><span style="width:32px"></span></div>'
+    +'<div id="srRows">'+rows+'</div>'
+    +'<button class="pill-btn" style="align-self:flex-start;margin-top:4px" onclick="addSmartRow()">+ 添加规则</button>'
+    +'<div style="font-size:12px;color:var(--text3)">限速&lt;上限值时使用对应偏移百分比，最后一条建议设为999作为兜底</div>'
     +'</div>';
-  var ok=await showModal('编辑智能偏移规则',html,true,true);
+  var ok=await showModal(t('smartEditTitle')||'编辑智能偏移规则',html,true,true);
   if(!ok)return;
-  var text=$('rfRules').value.trim();
-  var rows=text.split('\n');
-  var rules=[];
-  for(var i=0;i<rows.length;i++){
-    var parts=rows[i].split(',');
-    if(parts.length>=2){
-      var ms=parseInt(parts[0].trim());
-      var op=parseInt(parts[1].trim());
-      if(!isNaN(ms)&&!isNaN(op))rules.push({maxSpeed:ms,offsetPct:op});
-    }
-  }
+  var rules=parseSmartRows();
   if(rules.length>0){
     await fetch('/api/smart-offset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rules:rules,enabled:true})});
     loadSmartRules();
     toast('规则已更新');
   }
+}
+function smartRuleRow(i,ms,op){
+  return '<div class="sr-row" data-idx="'+i+'">'
+    +'<input type="number" class="txt sr-spd" value="'+ms+'" min="1" max="999" placeholder="限速">'
+    +'<input type="number" class="txt sr-pct" value="'+op+'" min="0" max="50" placeholder="%">'
+    +'<button class="pill-btn sr-del" onclick="delSmartRow(this)" title="删除">✕</button>'
+    +'</div>';
+}
+function addSmartRow(){
+  var cont=$('srRows');
+  var n=cont.querySelectorAll('.sr-row').length;
+  if(n>=8){toast('最多8条规则','err');return;}
+  cont.insertAdjacentHTML('beforeend',smartRuleRow(n,999,5));
+}
+function delSmartRow(btn){
+  var cont=$('srRows');
+  if(cont.querySelectorAll('.sr-row').length<=1){toast('至少保留1条规则','err');return;}
+  btn.closest('.sr-row').remove();
+}
+function parseSmartRows(){
+  var rules=[];
+  document.querySelectorAll('#srRows .sr-row').forEach(function(row){
+    var ms=parseInt(row.querySelector('.sr-spd').value);
+    var op=parseInt(row.querySelector('.sr-pct').value);
+    if(!isNaN(ms)&&!isNaN(op)){
+      if(ms<1)ms=1;if(ms>999)ms=999;
+      if(op<0)op=0;if(op>50)op=50;
+      rules.push({maxSpeed:ms,offsetPct:op});
+    }
+  });
+  rules.sort(function(a,b){return a.maxSpeed-b.maxSpeed});
+  return rules;
 }
 
 /* ═══════════════════════════════════════════════════

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-04-14
+
+### Added
+
+- Smart offset: visual rule editor with per-rule speed/percentage inputs, add/remove buttons, and auto-sort
+
 ## [1.3.1] - 2026-04-14
 
 ### Fixed
