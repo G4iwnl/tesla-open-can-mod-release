@@ -26,7 +26,7 @@ Tesla Open CAN Mod is an open-source project and contributions are welcome.
    ```
 5. Ensure your code passes the linter:
    ```bash
-   git ls-files '*.cpp' '*.h' '*.hpp' '*.ino' | xargs clang-format --dry-run --Werror --style=file
+   git ls-files '*.cpp' '*.h' '*.hpp' | xargs clang-format --dry-run --Werror --style=file
    ```
 6. Validate the release metadata:
    ```bash
@@ -46,23 +46,22 @@ Tesla Open CAN Mod is an open-source project and contributions are welcome.
 The project uses `clang-format` for consistent code formatting. The style configuration is in the repository root. Run the formatter before committing:
 
 ```bash
-git ls-files '*.cpp' '*.h' '*.hpp' '*.ino' | xargs clang-format -i --style=file
+git ls-files '*.cpp' '*.h' '*.hpp' | xargs clang-format -i --style=file
 ```
 
 ## Adding a New Board
 
-To add support for a new board:
+To add support for a new ESP32-based board:
 
-1. Create a new driver header in `include/drivers/` that implements the `CanDriver` interface
-2. Add a new `DRIVER_*` define in `sketch_config.h`
-3. Add a new PlatformIO environment in `platformio.ini`
-4. Add tests that cover the new driver
-5. Update the documentation
+1. Add a new PlatformIO environment in `platformio.ini` extending `esp32_twai`
+2. Set the correct `board`, `CAN_TX`, and `CAN_RX` GPIO pins
+3. Add tests if applicable
+4. Update the documentation
 
 ## Adding a New Feature
 
 1. Implement the feature in the appropriate handler(s)
-2. Add a `#define` flag in `sketch_config.h` if the feature should be optional
+2. Add a `#define` flag in `build_flags` if the feature should be optional
 3. Add unit tests
 4. Update the documentation
 

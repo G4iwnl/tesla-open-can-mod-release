@@ -19,7 +19,6 @@ SEMVER_RE = re.compile(
 )
 
 RELEVANT_PREFIXES = (
-    "RP2040CAN/",
     "include/",
     "src/",
     "scripts/",

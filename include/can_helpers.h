@@ -10,8 +10,8 @@ inline constexpr uint8_t kTrackModeRequestOn = 0x01;
 // On the Waveshare ESP32-S3-RS485-CAN env we compile every feature in
 // unconditionally; the user toggles them at runtime via the web console and
 // they are persisted in NVS. Build-time #defines (BYPASS_TLSSC_REQUIREMENT
-// etc.) are still honoured so legacy single-firmware builds (RP2040, M5Stack,
-// Feather) keep their old "compile-time opt-in" behaviour.
+// etc.) are still honoured so other ESP32 builds keep their
+// "compile-time opt-in" behaviour.
 //
 // build_enabled = true  → feature shows up as a switch (always true on
 //                          RUNTIME_HW_SWITCH builds; on legacy builds it

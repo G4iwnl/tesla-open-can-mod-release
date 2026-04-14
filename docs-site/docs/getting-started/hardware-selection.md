@@ -6,18 +6,16 @@ sidebar_position: 1
 
 ## Supported Boards
 
-| Board | CAN Interface | Library | Status |
-|---|---|---|---|
-| Adafruit Feather RP2040 CAN | MCP2515 over SPI | `mcp2515.h` (autowp) | Tested |
-| Adafruit Feather M4 CAN Express (ATSAME51) | Native MCAN peripheral | `Adafruit_CAN` (`CANSAME5x`) | Tested |
-| ESP32 with CAN transceiver (e.g. ESP32-DevKitC + SN65HVD230) | Native TWAI peripheral | ESP-IDF `driver/twai.h` | Tested |
-| [M5Stack Atomic CAN Base](https://docs.m5stack.com/en/atom/Atomic%20CAN%20Base) | CA-IS3050G over ESP32 TWAI | ESP32 TWAI | Tested |
-| Adafruit ESP32 Feather V2 + CAN Bus Featherwing | MCP2515 over SPI | `mcp2515.h` (autowp) | Tested |
-| M5Stack AtomS3 on CAN Base | CA-IS3050G over ESP32-S3 TWAI | ESP32 TWAI | Build target |
+| Board | CAN Interface | Status |
+|---|---|---|
+| [Waveshare ESP32-S3 RS485/CAN](https://www.waveshare.com/esp32-s3-relay-6ch.htm) | Built-in SIT1051T transceiver via ESP32-S3 TWAI | Recommended |
+| ESP32 with CAN transceiver (e.g. ESP32-DevKitC + SN65HVD230) | Native TWAI peripheral | Tested |
+| [M5Stack Atomic CAN Base](https://docs.m5stack.com/en/atom/Atomic%20CAN%20Base) | CA-IS3050G over ESP32 TWAI | Tested |
+| M5Stack AtomS3 on CAN Base | CA-IS3050G over ESP32-S3 TWAI | Tested |
 
 ## Supported Vehicle Variants
 
-Select your vehicle hardware variant via the `#define` directive in `sketch_config.h`.
+Select your vehicle hardware variant via the `build_flags` in `platformio.ini` or the Web UI at runtime.
 
 | Define | Target | Listens on CAN IDs | Notes |
 |---|---|---|---|
@@ -41,14 +39,12 @@ HW4 vehicles on firmware **2026.2.9.X** are on **FSD v14**. However, versions on
 - CAN bus connection to the vehicle (500 kbit/s)
 
 :::important
-Cut the onboard 120 Ohm termination resistor on the Feather CAN board (jumper labeled **TERM** on RP2040, **Trm** on M4). If using an ESP32 with an external transceiver that has a termination resistor, remove or disable it as well. The vehicle's CAN bus already has its own termination, and adding a second resistor will cause communication errors.
+If your ESP32 board or external CAN transceiver has a 120 Ohm termination resistor, remove or disable it. The vehicle's CAN bus already has its own termination, and adding a second resistor will cause communication errors.
 :::
 
 ## Which Board Should I Choose?
 
-- **Feather RP2040 CAN** — Most popular choice, well-documented, [3D printable case available](https://www.printables.com/model/1662242-adafruit-rp2040-can-bus-feather-case-5724)
-- **Feather M4 CAN Express** — Native CAN controller (no SPI overhead), slightly faster
-- **ESP32 + CAN transceiver** — Cheapest option if you already have an ESP32, requires external transceiver module
+- **Waveshare ESP32-S3 RS485/CAN** — Recommended. Built-in CAN transceiver, WiFi, Web UI, 16MB flash, compact form factor
 - **M5Stack Atomic CAN Base** — Most compact form factor
-- **Feather V2 + FeatherWing** — WiFi-capable ESP32 with MCP2515 CAN controller, good balance of features and cost
-- **M5Stack AtomS3 on CAN Base** — Same compact setup with the newer ESP32-S3 module
+- **M5Stack AtomS3 on CAN Base** — Compact setup with ESP32-S3
+- **ESP32 + CAN transceiver** — Cheapest option if you already have an ESP32, requires external transceiver module

@@ -23,7 +23,6 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   PLATFORMIO_CORE_DIR: "$CI_PROJECT_DIR/.platformio"
   PLATFORMIO_VERSION: "6.1.19"
-  ARDUINO_CLI_VERSION: "1.4.1"
 
 release-metadata:
   stage: verify
@@ -62,7 +61,7 @@ lint:
     - apt-get -o Acquire::Retries=3 install -y --no-install-recommends clang-format git
   script:
     - clang-format --version
-    - git ls-files '*.cpp' '*.h' '*.hpp' '*.ino' | xargs -r clang-format --dry-run --Werror --style=file
+    - git ls-files '*.cpp' '*.h' '*.hpp' | xargs -r clang-format --dry-run --Werror --style=file
 
 native-tests:
   extends: .platformio-job
@@ -73,40 +72,11 @@ native-tests:
     - pio test -e native_bypass_tlssc_requirement
     - pio test -e native_log_buffer
 
-build-rp2040:
-  extends: .platformio-job
-  tags:
-    - native
-  script:
-    - python scripts/platformio_set_ino_profile.py --driver DRIVER_MCP2515 --vehicle HW3 --enable EMERGENCY_VEHICLE_DETECTION
-    - pio run -e feather_rp2040_can
-  artifacts:
-    name: "firmware-rp2040-${CI_COMMIT_REF_SLUG}"
-    paths:
-      - .pio/build/feather_rp2040_can/firmware.uf2
-    expire_in: 1 year
-    when: on_success
-
-build-m4:
-  extends: .platformio-job
-  tags:
-    - native
-  script:
-    - python scripts/platformio_set_ino_profile.py --driver DRIVER_SAME51 --vehicle HW4 --enable EMERGENCY_VEHICLE_DETECTION --enable ENHANCED_AUTOPILOT
-    - pio run -e feather_m4_can
-  artifacts:
-    name: "firmware-m4-${CI_COMMIT_REF_SLUG}"
-    paths:
-      - .pio/build/feather_m4_can/firmware.bin
-    expire_in: 1 year
-    when: on_success
-
 build-esp32:
   extends: .esp32-platformio-job
   tags:
     - native
   script:
-    - python scripts/platformio_set_ino_profile.py --driver DRIVER_TWAI --vehicle HW4 --enable EMERGENCY_VEHICLE_DETECTION --enable ENHANCED_AUTOPILOT
     - pio run -e esp32_twai
   artifacts:
     name: "firmware-esp32-${CI_COMMIT_REF_SLUG}"
@@ -120,7 +90,6 @@ build-m5stack:
   tags:
     - native
   script:
-    - python scripts/platformio_set_ino_profile.py --driver DRIVER_TWAI --vehicle HW4 --enable EMERGENCY_VEHICLE_DETECTION --enable ENHANCED_AUTOPILOT
     - pio run -e m5stack-atomic-can-base
   artifacts:
     name: "firmware-m5stack-${CI_COMMIT_REF_SLUG}"
@@ -129,42 +98,28 @@ build-m5stack:
     expire_in: 1 year
     when: on_success
 
-build-esp32-featherwing:
-  extends: .esp32-platformio-job
-  tags:
-    - native
-  script:
-    - python scripts/platformio_set_ino_profile.py --driver DRIVER_MCP2515 --vehicle HW4 --enable EMERGENCY_VEHICLE_DETECTION
-    - pio run -e esp32_feather_v2_mcp2515
-  artifacts:
-    name: "firmware-esp32-featherwing-${CI_COMMIT_REF_SLUG}"
-    paths:
-      - .pio/build/esp32_feather_v2_mcp2515/firmware.bin
-    expire_in: 1 year
-    when: on_success
-
 build-m5stack-atoms3:
   extends: .esp32-platformio-job
   script:
-    - python scripts/platformio_set_ino_profile.py --driver DRIVER_TWAI --vehicle HW4 --enable EMERGENCY_VEHICLE_DETECTION --enable ENHANCED_AUTOPILOT
     - pio run -e m5stack-atoms3-mini-can-base
 
-arduino-rp2040:
-  stage: verify
-  image: python:3-slim
+build-waveshare-esp32s3:
+  extends: .esp32-platformio-job
   tags:
     - native
-  before_script:
-    - apt-get update
-    - apt-get install -y --no-install-recommends curl git
-    - curl -fsSL "https://downloads.arduino.cc/arduino-cli/arduino-cli_${ARDUINO_CLI_VERSION}_Linux_64bit.tar.gz" | tar -xz
   script:
-    - ./arduino-cli config add board_manager.additional_urls https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
-    - ./arduino-cli core update-index
-    - ./arduino-cli core install rp2040:rp2040
-    - ./arduino-cli lib install "autowp-mcp2515"
-    - python scripts/platformio_set_ino_profile.py --driver DRIVER_MCP2515 --vehicle HW3 --enable EMERGENCY_VEHICLE_DETECTION
-    - ./arduino-cli compile -b rp2040:rp2040:adafruit_feather_can RP2040CAN
+    - pio run -e waveshare_esp32s3_rs485_can
+  artifacts:
+    name: "firmware-waveshare-esp32s3-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .pio/build/waveshare_esp32s3_rs485_can/firmware.bin
+    expire_in: 1 year
+    when: on_success
+
+build-lilygo-tcan485:
+  extends: .esp32-platformio-job
+  script:
+    - pio run -e lilygo_tcan485_hw3
 
 pages:
   stage: deploy
@@ -195,20 +150,14 @@ release:
     description: "./CHANGELOG.md"
     assets:
       links:
-        - name: "Firmware — Feather RP2040 CAN (.uf2)"
-          url: "$CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_TAG/raw/.pio/build/feather_rp2040_can/firmware.uf2?job=build-rp2040"
-          link_type: package
-        - name: "Firmware — Feather M4 CAN (.bin)"
-          url: "$CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_TAG/raw/.pio/build/feather_m4_can/firmware.bin?job=build-m4"
-          link_type: package
         - name: "Firmware — ESP32 TWAI (.bin)"
           url: "$CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_TAG/raw/.pio/build/esp32_twai/firmware.bin?job=build-esp32"
           link_type: package
         - name: "Firmware — M5Stack Atomic CAN Base (.bin)"
           url: "$CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_TAG/raw/.pio/build/m5stack-atomic-can-base/firmware.bin?job=build-m5stack"
           link_type: package
-        - name: "Firmware — ESP32 Feather V2 MCP2515 (.bin)"
-          url: "$CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_TAG/raw/.pio/build/esp32_feather_v2_mcp2515/firmware.bin?job=build-esp32-featherwing"
+        - name: "Firmware — Waveshare ESP32-S3 RS485/CAN (.bin)"
+          url: "$CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_TAG/raw/.pio/build/waveshare_esp32s3_rs485_can/firmware.bin?job=build-waveshare-esp32s3"
           link_type: package
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'

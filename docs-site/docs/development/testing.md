@@ -45,13 +45,10 @@ Tests use the `MockDriver` from `include/drivers/mock_driver.h` to simulate CAN 
 
 ## Continuous Integration
 
-GitLab CI validates three layers on every commit:
+GitLab CI validates two layers on every commit:
 
 1. **Unit tests:** `pio test -e native`, `native_bypass_tlssc_requirement`, `native_log_buffer`
-2. **Cross-compilation:** `pio run` for all board environments (RP2040, M4, ESP32, M5Stack)
-3. **Arduino IDE compatibility:** `arduino-cli compile` for the RP2040 sketch
-
-The CI pipeline in `.gitlab-ci.yml` uses `scripts/platformio_set_ino_profile.py` to set the correct board/vehicle defines per job.
+2. **Cross-compilation:** `pio run` for all ESP32/ESP32-S3 board environments
 
 ## Prerequisites for Local Testing
 

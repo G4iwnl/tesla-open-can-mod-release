@@ -9,7 +9,6 @@ const sidebars: SidebarsConfig = {
       items: [
         'getting-started/hardware-selection',
         'getting-started/installation',
-        'getting-started/installation-m4',
         'getting-started/fsd-subscription',
         'getting-started/wiring-legacy',
         'getting-started/firmware-flash',
@@ -35,10 +34,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Hardware',
       items: [
-        'hardware/feather-rp2040',
-        'hardware/feather-m4',
         'hardware/esp32',
-        'hardware/feather-v2-featherwing',
         'hardware/m5stack',
         'hardware/lilygo-tcan485'
       ],

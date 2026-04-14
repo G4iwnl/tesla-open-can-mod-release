@@ -39,9 +39,9 @@ Full feature documentation: [teslaopencanmod.org/docs/](https://teslaopencanmod.
 
 ## What It Does
 
-The firmware runs on multiple supported boards — Adafruit Feather RP2040 CAN, Feather M4 CAN Express, ESP32-based boards, and M5Stack Atomic CAN Base. It sits on the vehicle CAN bus, intercepts relevant frames, modifies the necessary bits, and re-transmits the modified frames — all in real time.
+The firmware runs on ESP32 and ESP32-S3 boards with the native TWAI (CAN) peripheral. It sits on the vehicle CAN bus, intercepts relevant frames, modifies the necessary bits, and re-transmits the modified frames — all in real time.
 
-Features are selected at compile time via `sketch_config.h` and vary by hardware variant (Legacy / HW3 / HW4). ESP32 boards additionally expose a WiFi web interface for runtime control and OTA firmware updates.
+The hardware variant (Legacy / HW3 / HW4) and optional features are configured via `platformio.ini` build flags. A WiFi web interface provides runtime control, real-time monitoring, and over-the-air firmware updates.
 
 ## Prerequisites
 
@@ -64,7 +64,7 @@ If FSD subscriptions are not available in your region, there is a workaround usi
 
 ## Installation
 
-Both Arduino IDE and PlatformIO are supported. Select your board and vehicle variant in `sketch_config.h`, then flash the firmware to your board.
+Use PlatformIO to build and flash. Select your board environment and configure the vehicle variant in `platformio.ini` build flags.
 
 Full installation guide: [teslaopencanmod.org/docs/getting-started/firmware-flash](https://teslaopencanmod.org/docs/getting-started/firmware-flash)
 
@@ -80,8 +80,6 @@ This project depends on the following open-source libraries. Their full license 
 
 | Library | License | Copyright |
 |---------|---------|-----------|
-| [autowp/arduino-mcp2515](https://github.com/autowp/arduino-mcp2515) | MIT | (c) 2013 Seeed Technology Inc., (c) 2016 Dmitry |
-| [adafruit/Adafruit_CAN](https://github.com/adafruit/Adafruit_CAN) | MIT | (c) 2017 Sandeep Mistry |
 | [espressif/esp-idf](https://github.com/espressif/esp-idf) (TWAI driver) | Apache 2.0 | (c) 2015-2025 Espressif Systems (Shanghai) CO LTD |
 
 ## License
