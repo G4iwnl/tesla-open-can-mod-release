@@ -30,6 +30,7 @@ For any use beyond private testing, you are responsible for complying with all a
 - **Autosteer Nag Killer** — Suppresses the Autopilot "hands on wheel" alert by echoing modified EPAS steering torque frames on CAN bus 4
 - **Actually Smart Summon (ASS)** — Removes EU regulatory restrictions on Smart Summon (HW3/HW4)
 - **Speed Profiles** — Maps the follow-distance stalk setting to FSD aggressiveness profiles (Chill / Normal / Hurry / Max / Sloth)
+- **Speed Offset** — Adjustable speed offset applied on top of the Autopilot set speed. Supports manual offset and smart offset mode with speed-based rules (HW3/HW4)
 - **ISA Speed Chime Suppression** — Mutes the Intelligent Speed Assistance audible chime while keeping the visual indicator active (HW4, optional)
 - **Emergency Vehicle Detection** — Enables approaching emergency vehicle detection on FSD v14 (HW4, optional)
 - **Web Interface** — WiFi hotspot on ESP32 boards for real-time monitoring, runtime feature toggles, and over-the-air firmware updates
@@ -59,6 +60,7 @@ If FSD subscriptions are not available in your region, there is a workaround usi
 | ESP32 with CAN transceiver (e.g. ESP32-DevKitC + SN65HVD230)            | Native TWAI peripheral     | ESP-IDF `driver/twai.h`      | Tested                             |          |
 | [Atomic CAN Base](https://docs.m5stack.com/en/atom/Atomic%20CAN%20Base) | CA-IS3050G over ESP32 TWAI | ESP32 TWAI                   | Tested                             |          |
 | Adafruit ESP32 Feather V2 (5400) + Adafruit CAN Bus Featherwing (5709)  | MCP2515 over SPI           | `mcp2515.h` (autowp)         | Tested                             |          |
+| [Waveshare ESP32-S3 RS485/CAN](https://www.waveshare.com/esp32-s3-rs485-can.htm) | SIT1050T over ESP32-S3 TWAI | ESP-IDF `driver/twai.h`     | Tested                             |          |
 
 ## Installation
 
@@ -126,7 +128,7 @@ Select your vehicle hardware variant in `RP2040CAN/sketch_config.h` via the `#de
 |----------|------------------|---------------------|-------|
 | `LEGACY` | HW3 Retrofit     | 1006, 69            | Sets FSD enable bit and speed profile control via follow distance |
 | `HW3`    | HW3 vehicles     | 1016, 1021          | Same functionality as legacy |
-| `HW4`    | HW4 vehicles     | 1016, 1021          | Extended speed-profile range (5 levels) |
+| `HW4`    | HW4 vehicles     | 921, 1016, 1021     | Extended speed-profile range (5 levels), speed offset, ISA chime suppression |
 
 > [!NOTE]
 > HW4 vehicles on firmware **2026.2.9.X** are on **FSD v14**. However, versions on the **2026.8.X** branch are still on **FSD v13**. If your vehicle is running FSD v13 (including the 2026.8.X branch or anything older than 2026.2.9), compile with `HW3` even if your vehicle has HW4 hardware.
@@ -181,11 +183,13 @@ The table below shows exactly which CAN messages each hardware variant monitors 
 | 921 | DAS_status | R+W | — | 56–63 | (checksum) | DAS_statusChecksum | update checksum |
 | 1016 | UI_driverAssistControl | R | — | 45–47 | (0–7) | UI_accFollowDistanceSetting | read distance |
 | 1021 | UI_autopilotControl | R+W | 0 | 38 | (0/1) | UI_fsdStopsControlEnabled | read FSD |
+| 1021 | UI_autopilotControl | R+W | 0 | 25–30 | (offset) | | read offset |
 | 1021 | UI_autopilotControl | R+W | 0 | 46 | 1 | | enable FSD |
 | 1021 | UI_autopilotControl | R+W | 0 | 59 | 1 | | enable detection |
 | 1021 | UI_autopilotControl | R+W | 0 | 60 | 1 | | enable V14 |
 | 1021 | UI_autopilotControl | R+W | 1 | 19 | 0 | UI_applyEceR79 | suppress nag (`ENHANCED_AUTOPILOT`) |
 | 1021 | UI_autopilotControl | R+W | 1 | 47 | 1 | UI_hardCoreSummon | enable summon (`ENHANCED_AUTOPILOT`) |
+| 1021 | UI_autopilotControl | R+W | 2 | 6–7, 8–13 | (offset) | | inject offset |
 | 1021 | UI_autopilotControl | R+W | 2 | 60–62 | (0–4) | | inject profile |
 
 > Signal names sourced from [tesla-can-explorer](https://github.com/mikegapinski/tesla-can-explorer) by [@mikegapinski](https://x.com/mikegapinski).
@@ -199,6 +203,7 @@ The table below shows exactly which CAN messages each hardware variant monitors 
 | ESP32 with CAN transceiver (e.g. ESP32-DevKitC + SN65HVD230)            | Native TWAI peripheral     | ESP-IDF `driver/twai.h`      | Tested |
 | [Atomic CAN Base](https://docs.m5stack.com/en/atom/Atomic%20CAN%20Base) | CA-IS3050G over ESP32 TWAI | ESP32 TWAI                   | Tested                             |
 | M5Stack AtomS3 CAN Base                                                 | CA-IS3050G over ESP32-S3 TWAI | ESP32 TWAI                | Build target                       |
+| [Waveshare ESP32-S3 RS485/CAN](https://www.waveshare.com/esp32-s3-rs485-can.htm) | SIT1050T over ESP32-S3 TWAI | ESP-IDF `driver/twai.h`     | Tested                             |
 
 ## Hardware Requirements
 
@@ -377,6 +382,9 @@ You can also enable optional features in the same file:
 
    # M5Stack AtomS3 CAN Base
    pio run -e m5stack-atoms3-can-base
+
+   # Waveshare ESP32-S3 RS485/CAN
+   pio run -e waveshare_esp32s3_rs485_can
    ```
 
 #### Flash
@@ -398,6 +406,9 @@ pio run -e m5stack-atomic-can-base --target upload
 
 # M5Stack AtomS3 CAN Base
 pio run -e m5stack-atoms3-can-base --target upload
+
+# Waveshare ESP32-S3 RS485/CAN
+pio run -e waveshare_esp32s3_rs485_can --target upload
 ```
 
 > [!TIP]
@@ -525,14 +536,13 @@ test/
 
 ### Continuous Integration
 
-GitLab CI validates three layers:
+CI validates three layers:
 
-- `pio run` for `feather_rp2040_can`, `feather_m4_can`, `esp32_twai`, and `m5stack-atomic-can-base`
+- `pio run` for `feather_rp2040_can`, `feather_m4_can`, `esp32_twai`, `m5stack-atomic-can-base`, `m5stack-atoms3-can-base`, and `waveshare_esp32s3_rs485_can`
 - `pio test -e native`, `pio test -e native_bypass_tlssc_requirement`, and `pio test -e native_log_buffer`
-- `pio run` for `feather_rp2040_can`, `feather_m4_can`, `esp32_twai`, `m5stack-atomic-can-base`, and `m5stack-atoms3-can-base`
 - `arduino-cli compile` for the `RP2040CAN` sketch folder on `rp2040:rp2040:adafruit_feather_can`
 
-The GitLab pipeline in `.gitlab-ci.yml` rewrites `RP2040CAN/sketch_config.h` per job using `scripts/platformio_set_ino_profile.py`, so the shared Arduino sketch profile stays the source of truth in CI as well.
+The CI pipeline rewrites `RP2040CAN/sketch_config.h` per job using `scripts/platformio_set_ino_profile.py`, so the shared Arduino sketch profile stays the source of truth in CI as well.
 
 ### Running Tests
 

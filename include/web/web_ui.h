@@ -98,7 +98,7 @@ body{
 
 /* ── Pages ──────────────────────────────────────── */
 .page{display:none}
-.page.active{display:block;animation:fadeUp .25s ease}
+.page.active{display:block;animation:fadeUp .2s ease;will-change:opacity,transform}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .grid{display:grid;gap:14px;grid-template-columns:1fr}
 @media(min-width:768px){.grid{grid-template-columns:1fr 1fr}}
@@ -111,7 +111,8 @@ body{
   border:1px solid var(--border);
   border-radius:var(--radius);
   padding:18px 20px;
-  position:relative
+  position:relative;
+  contain:content
 }
 .card-title{
   font-size:18px;color:var(--text2);font-weight:700;
@@ -452,7 +453,8 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
   color:var(--text);padding:12px 24px;border-radius:12px;
   font-size:15px;font-weight:600;z-index:300;
   transition:top .3s ease;border:1px solid var(--border2);
-  white-space:nowrap;max-width:90%
+  white-space:nowrap;max-width:90%;
+  will-change:top
 }
 .toast.show{top:16px}
 .toast.ok{border-color:rgba(48,209,88,.25)}
@@ -1272,8 +1274,14 @@ function setConn(ok){
 
 function setFeatToggle(id,feat){
   var el=$(id);if(!el)return;
-  if(!feat){el.checked=false;el.disabled=true;return;}
-  el.checked=!!feat.enabled;el.disabled=!feat.supported;
+  if(!feat){
+    if(el.checked)el.checked=false;
+    if(!el.disabled)el.disabled=true;
+    return;
+  }
+  var en=!!feat.enabled,sup=!!feat.supported;
+  if(el.checked!==en)el.checked=en;
+  if(el.disabled===sup)el.disabled=!sup;
 }
 
 function getCanStateText(state){
@@ -1346,7 +1354,7 @@ async function poll(){
       c.classList.toggle('active',c.dataset.val===String(d.speed_profile));
     });
 
-    /* Feature toggles */
+    /* Feature toggles — only update when changed */
     setFeatToggle('tFsd',f.bypass_tlssc_requirement);
     setFeatToggle('tIsa',f.isa_speed_chime_suppress);
     setFeatToggle('tEvd',f.emergency_vehicle_detection);
@@ -1354,22 +1362,25 @@ async function poll(){
     setFeatToggle('tNag',f.nag_killer);
     setFeatToggle('tCn',f.china_mode);
     setFeatToggle('tPreheat',f.preheat);
-    $('tLog').checked=!!d.enable_print;
+    var logChecked=!!d.enable_print;
+    if($('tLog').checked!==logChecked)$('tLog').checked=logChecked;
 
     /* WiFi */
     if(d.sta_ssid&&!ssidLoaded){$('wifiSsid').value=d.sta_ssid;ssidLoaded=true;}
 
-    /* Log */
+    /* Log — batch insert via DocumentFragment */
     if(d.logs&&d.logs.length){
       var box=$('logBox'),empty=$('logEmpty');
       if(empty)empty.remove();
-      for(var i=0;i<d.logs.length;i++){
+      var frag=document.createDocumentFragment();
+      for(var i=d.logs.length-1;i>=0;i--){
         var line=document.createElement('div');line.className='log-line';
         var ts=document.createElement('span');ts.className='ts';
         ts.textContent=fmtUp(Math.floor(d.logs[i].ts/1000));
         line.appendChild(ts);line.appendChild(document.createTextNode(d.logs[i].msg));
-        box.insertBefore(line,box.firstChild);
+        frag.appendChild(line);
       }
+      box.insertBefore(frag,box.firstChild);
       while(box.children.length>200)box.removeChild(box.lastChild);
     }
     logSince=d.log_head;
@@ -1607,8 +1618,12 @@ applyLang();
 setSLMode(slMode);
 poll();
 pollCanLive();
-setInterval(poll,2000);
-setInterval(pollCanLive,500);
+var _pollTimer=setInterval(poll,2000);
+var _canTimer=setInterval(pollCanLive,750);
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){clearInterval(_pollTimer);clearInterval(_canTimer);}
+  else{poll();pollCanLive();_pollTimer=setInterval(poll,2000);_canTimer=setInterval(pollCanLive,750);}
+});
 function updVp(){$('iVp').textContent=window.innerWidth+'×'+window.innerHeight}
 updVp();window.addEventListener('resize',updVp);
 </script>

@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.2.0] - 2026-04-14
+## [1.2.3] - 2026-04-15
+
+### Changed
+
+- Web UI: optimized polling with visibility API (pause when tab hidden)
+- Web UI: batch log insertion via DocumentFragment for smoother rendering
+- Web UI: skip redundant DOM writes on feature toggles (dirty-check before update)
+- Web UI: added CSS containment and GPU acceleration hints for smoother animations
+- Web UI: reduced CAN live poll interval from 500ms to 750ms to lower CPU load
+- README: added Speed Offset feature description
+- README: added Waveshare ESP32-S3 RS485/CAN to supported boards
+- README: added HW4 speed offset rows to CAN signal table
+- README: updated CI section and PlatformIO build/flash examples
+
+## [1.2.2] - 2026-04-14
 
 ### Added
 
