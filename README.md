@@ -5,11 +5,13 @@
 
 # Tesla Open Can Mod
 
+> 本项目基于 [Tesla-OPEN-CAN-MOD](https://gitlab.com/Tesla-OPEN-CAN-MOD/tesla-open-can-mod) 大佬的原始项目进行二次开发，感谢原作者的开源贡献。
+
 [Website](https://teslaopencanmod.org) | [Documentation](https://teslaopencanmod.org/docs/intro) | [Community Discord](https://discord.gg/ZTQKAUTd2F)
 
-An open-source general-purpose CAN bus modification tool for Tesla vehicles. While FSD enablement was the starting point, the goal is to expose and control everything accessible via CAN — as a fully open project.
+---
 
-Some sellers charge up to 500 € for a solution like this. The hardware costs around 20 €, and even with labor factored in, a fair price is no more than 50 €. This project exists so nobody has to overpay.
+开源 Tesla CAN 总线通用改装工具。以 FSD 激活为起点，目标是通过 CAN 总线暴露并控制一切可访问的功能。
 
 ## Disclaimer
 
