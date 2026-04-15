@@ -7,39 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.3.5] - 2026-04-15
-
-### Changed
-
-- Removed manual theme toggle button; theme now always auto-follows vehicle headlight state
-
-## [1.3.4] - 2026-04-15
-
-### Added
-
-- Auto theme mode: cycle dark → light → auto with theme button; auto mode follows vehicle headlight state via CAN lightState signal
-
-## [1.3.3] - 2026-04-14
-
-### Fixed
-
-- Fixed smart offset rule editor modal title showing raw i18n key
-
-### Changed
-
-- Updated default smart offset rules to 4 tiers: ≤40→50%, 50→30%, 60→20%, 80-120→10%
-
-## [1.3.2] - 2026-04-14
+## [1.4.0] - 2026-04-15
 
 ### Added
 
 - Smart offset: visual rule editor with per-rule speed/percentage inputs, add/remove buttons, and auto-sort
+- Auto theme: UI theme automatically follows vehicle headlight state via CAN lightState (0x185) signal
+- i18n: added smartEditTitle translation key for smart offset editor modal (zh/en)
+- README: added battery preheat feature description
+- README: added upstream attribution to Tesla-OPEN-CAN-MOD original project
 
-## [1.3.1] - 2026-04-14
+### Changed
+
+- Default smart offset rules updated to 4 tiers: <=40 -> 50%, 50 -> 30%, 60 -> 20%, 80-120 -> 10%
+- Removed manual theme toggle button; theme is now fully automatic (headlights on = dark, off = light)
+- README: translated to English, added 2026.2.300 to blocked firmware versions warning
 
 ### Fixed
 
-- Web UI: removed literal `\n` text displayed between language and theme buttons in header bar
+- Web UI: removed literal backslash-n text displayed between language and theme buttons in header bar
 
 ## [1.3.0] - 2026-04-14
 
