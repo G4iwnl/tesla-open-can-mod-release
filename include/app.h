@@ -70,6 +70,7 @@ static void buildFilterMask()
 }
 
 static volatile bool frameReady = true;
+static bool vehicleOtaPaused = false;
 static void canISR() { frameReady = true; }
 
 #if defined(DRIVER_TWAI) && !defined(NATIVE_BUILD)
@@ -194,7 +195,9 @@ static void appLoop()
 #endif
 
         // Feed handler (only for IDs it cares about) — O(1) bitmask check
-        if (frame.id < 1024 &&
+        // OTA protection: skip handler when vehicle OTA is in progress
+        if (!vehicleOtaPaused &&
+            frame.id < 1024 &&
             (handlerFilterMask[frame.id >> 5] & (1u << (frame.id & 31))))
         {
             appHandler->frameCount++;
@@ -204,8 +207,25 @@ static void appLoop()
     digitalWrite(PIN_LED, HIGH);
 
 #if defined(RUNTIME_HW_SWITCH) && !defined(NATIVE_BUILD)
+    // ─── OTA protection: pause CAN mods when vehicle OTA is detected ───
+    {
+        DecodedSignals otaSig;
+        decodeSignals(canLive, otaSig);
+        bool otaNow = (otaSig.otaInProgress > 0);
+        if (otaNow != vehicleOtaPaused)
+        {
+            vehicleOtaPaused = otaNow;
+            char obuf[LogRingBuffer::kMaxMsgLen];
+            snprintf(obuf, sizeof(obuf), "[OTA] Vehicle OTA %s — CAN mods %s",
+                     otaNow ? "detected" : "ended",
+                     otaNow ? "PAUSED" : "RESUMED");
+            logRing.push(obuf, millis());
+            Serial.println(obuf);
+        }
+    }
+
     // ─── Smart offset: auto-adjust based on fusedSpeedLimit ───
-    if (smartOffsetEnabled && canLive.isEnabled())
+    if (!vehicleOtaPaused && smartOffsetEnabled && canLive.isEnabled())
     {
         static unsigned long lastSmartMs = 0;
         unsigned long now = millis();
@@ -236,7 +256,8 @@ static void appLoop()
     // retry a failed frame thousands of times in 500ms, exploding the TX
     // error counter from 0 to 128 (ERROR_PASSIVE) on a single inject when
     // the bus has no other ACK source.
-    if (preheatRuntime && appDriver)
+    // Preheat also paused during vehicle OTA to avoid bus interference.
+    if (!vehicleOtaPaused && preheatRuntime && appDriver)
     {
         static unsigned long lastPreheatMs = 0;
         unsigned long now = millis();

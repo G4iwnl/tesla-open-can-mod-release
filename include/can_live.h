@@ -183,6 +183,17 @@ struct DecodedSignals
     bool userSpeedOffsetUnitsKph = false;
     int mppSpeedLimit = 0;
 
+    // 0x132 BMS_hvBusStatus
+    float bmsVoltage = 0;        // V (pack voltage)
+    float bmsCurrent = 0;        // A (signed, + = discharge)
+
+    // 0x292 BMS_socStatus
+    float bmsSoc = 0;            // 0-100%
+
+    // 0x312 BMS_thermalStatus
+    int8_t bmsTempMin = -40;     // °C
+    int8_t bmsTempMax = -40;     // °C
+
     // 0x3F8 UI_driverAssistControl
     uint8_t followDistance = 0;
 
@@ -216,6 +227,12 @@ inline void decodeSignals(const CanLive &live, DecodedSignals &out)
             // Disabled: no confirmed byte position for brake torque
             break;
 
+        case 0x132: { // BMS_hvBusStatus
+            out.bmsVoltage = ((uint16_t)(d[1] << 8) | d[0]) * 0.01f;
+            out.bmsCurrent = (int16_t)((d[3] << 8) | d[2]) * 0.1f;
+            break;
+        }
+
         case 0x185: // Lighting state
             out.lightState = d[2];
             out.lightRaw_b3 = d[3];
@@ -247,9 +264,19 @@ inline void decodeSignals(const CanLive &live, DecodedSignals &out)
             // Disabled: no confirmed byte position
             break;
 
+        case 0x292: { // BMS_socStatus
+            out.bmsSoc = (((d[1] & 0x03) << 8) | d[0]) * 0.1f;
+            break;
+        }
+
         case 0x2B9: // DAS_control
             out.dasSetSpeed = (((d[1] & 0x0F) << 8) | d[0]) * 0.1f;
             out.dasAccState = (d[1] >> 4) & 0x0F;
+            break;
+
+        case 0x312: // BMS_thermalStatus
+            out.bmsTempMin = (int8_t)(d[4] - 40);
+            out.bmsTempMax = (int8_t)(d[5] - 40);
             break;
 
         case 0x318: // GTW_carState

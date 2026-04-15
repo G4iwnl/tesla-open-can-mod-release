@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-04-16
+
+### Added
+
+- Battery status monitoring panel: real-time SOC%, voltage, current, and temperature min/max from BMS CAN signals (0x132, 0x292, 0x312) displayed on dashboard
+- OTA update protection: automatically pauses all CAN frame modifications and preheat injection when vehicle OTA is detected (otaInProgress > 0 from 0x318), with auto-resume and UI warning banner
+- Drive data recording: ring buffer (4096 entries) captures timestamped signal snapshots, with toggle/clear controls and CSV download from System tab
+- i18n: added battery, OTA pause, and drive data recording translation keys (zh/en)
+- CSS: added yellow bar color variant for battery SOC warning level
+
 ## [1.4.0] - 2026-04-15
 
 ### Added

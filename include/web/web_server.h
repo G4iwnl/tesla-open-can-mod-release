@@ -1187,6 +1187,131 @@ static esp_err_t canLogDumpHandler(httpd_req_t *req)
     return ESP_OK;
 }
 
+// ── Drive Data Recording — signal snapshot ring buffer + CSV export ──────────
+
+struct DriveDataEntry
+{
+    uint32_t timestamp_ms;
+    float speed_kph;
+    float accel_pct;
+    uint8_t gear;
+    float steerTorque_Nm;
+    int fusedLimit;
+    int mapLimit;
+    float bmsSoc;
+    float bmsVoltage;
+    float bmsCurrent;
+    int8_t bmsTempMin;
+    int8_t bmsTempMax;
+};
+
+static constexpr size_t kDriveDataMax = 4096; // ~80 KB in RAM
+#if defined(BOARD_HAS_PSRAM)
+static DriveDataEntry *driveDataBuf = nullptr;
+#else
+static constexpr size_t kDriveDataSmall = 256; // ~5 KB for non-PSRAM boards
+static DriveDataEntry driveDataBufSmall[kDriveDataSmall];
+static DriveDataEntry *driveDataBuf = driveDataBufSmall;
+#endif
+static volatile size_t driveDataHead = 0;
+static volatile size_t driveDataCount = 0;
+static volatile bool driveRecording = false;
+
+static size_t driveDataCapacity()
+{
+#if defined(BOARD_HAS_PSRAM)
+    return driveDataBuf ? kDriveDataMax : 0;
+#else
+    return kDriveDataSmall;
+#endif
+}
+
+// Called from the CAN live polling path — not ISR safe, but only called from
+// the web polling timer which runs on the main core.
+static void driveDataRecord(const DecodedSignals &sig)
+{
+    if (!driveRecording || !driveDataBuf) return;
+    size_t cap = driveDataCapacity();
+    if (cap == 0) return;
+    DriveDataEntry &e = driveDataBuf[driveDataHead % cap];
+    e.timestamp_ms = millis();
+    e.speed_kph    = sig.vehicleSpeed;
+    e.accel_pct    = sig.di_accelPedal;
+    e.gear         = sig.di_gear;
+    e.steerTorque_Nm = sig.torsionBarTorque;
+    e.fusedLimit   = sig.fusedSpeedLimit;
+    e.mapLimit     = sig.mapSpeedLimit;
+    e.bmsSoc       = sig.bmsSoc;
+    e.bmsVoltage   = sig.bmsVoltage;
+    e.bmsCurrent   = sig.bmsCurrent;
+    e.bmsTempMin   = sig.bmsTempMin;
+    e.bmsTempMax   = sig.bmsTempMax;
+    driveDataHead++;
+    if (driveDataCount < cap) driveDataCount++;
+}
+
+static esp_err_t driveDataToggleHandler(httpd_req_t *req)
+{
+    driveRecording = !driveRecording;
+    char buf[64];
+    snprintf(buf, sizeof(buf), "{\"recording\":%s}", driveRecording ? "true" : "false");
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, buf);
+    return ESP_OK;
+}
+
+static esp_err_t driveDataClearHandler(httpd_req_t *req)
+{
+    driveDataHead = 0;
+    driveDataCount = 0;
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, "{\"ok\":true}");
+    return ESP_OK;
+}
+
+static esp_err_t driveDataStatusHandler(httpd_req_t *req)
+{
+    char buf[96];
+    snprintf(buf, sizeof(buf), "{\"recording\":%s,\"rows\":%u,\"max\":%u}",
+             driveRecording ? "true" : "false",
+             (unsigned)driveDataCount, (unsigned)driveDataCapacity());
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, buf);
+    return ESP_OK;
+}
+
+static esp_err_t driveDataCsvHandler(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/csv");
+    httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"drive_data.csv\"");
+
+    const char *header = "timestamp_ms,speed_kph,accel_pct,gear,steer_Nm,fused_limit,map_limit,soc_pct,voltage_V,current_A,temp_min_C,temp_max_C\r\n";
+    httpd_resp_send_chunk(req, header, strlen(header));
+
+    size_t count = driveDataCount;
+    size_t head  = driveDataHead;
+    size_t cap   = driveDataCapacity();
+    size_t start = (count < cap) ? 0 : (head % cap);
+
+    char line[192];
+    for (size_t i = 0; i < count; i++)
+    {
+        size_t idx = (start + i) % cap;
+        const DriveDataEntry &e = driveDataBuf[idx];
+        int len = snprintf(line, sizeof(line),
+                           "%u,%.1f,%.1f,%u,%.2f,%d,%d,%.1f,%.1f,%.1f,%d,%d\r\n",
+                           (unsigned)e.timestamp_ms, e.speed_kph, e.accel_pct,
+                           (unsigned)e.gear, e.steerTorque_Nm,
+                           e.fusedLimit, e.mapLimit,
+                           e.bmsSoc, e.bmsVoltage, e.bmsCurrent,
+                           (int)e.bmsTempMin, (int)e.bmsTempMax);
+        httpd_resp_send_chunk(req, line, len);
+    }
+
+    httpd_resp_send_chunk(req, NULL, 0);
+    return ESP_OK;
+}
+
 // --- CAN Live signal API ---
 
 static esp_err_t canLiveHandler(httpd_req_t *req)
@@ -1194,6 +1319,9 @@ static esp_err_t canLiveHandler(httpd_req_t *req)
     canLive.sortById();
     DecodedSignals sig;
     decodeSignals(canLive, sig);
+
+    // Record drive data snapshot if recording is active
+    driveDataRecord(sig);
 
     cJSON *root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "ids_seen", (int)canLive.slotCount());
@@ -1238,6 +1366,12 @@ static esp_err_t canLiveHandler(httpd_req_t *req)
     cJSON_AddBoolToObject(decoded, "eceR79Nag", sig.eceR79Nag);
     // Lighting
     cJSON_AddNumberToObject(decoded, "lightState", sig.lightState);
+    // Battery (BMS)
+    cJSON_AddNumberToObject(decoded, "bmsVoltage_V", sig.bmsVoltage);
+    cJSON_AddNumberToObject(decoded, "bmsCurrent_A", sig.bmsCurrent);
+    cJSON_AddNumberToObject(decoded, "bmsSoc_pct", sig.bmsSoc);
+    cJSON_AddNumberToObject(decoded, "bmsTempMin_C", sig.bmsTempMin);
+    cJSON_AddNumberToObject(decoded, "bmsTempMax_C", sig.bmsTempMax);
     // System
     cJSON_AddNumberToObject(decoded, "otaInProgress", sig.otaInProgress);
 
@@ -1287,6 +1421,16 @@ static void webServerInit()
     // Calling it again here is harmless (idempotent) and protects against the
     // legacy build paths that don't go through the runtime-switch appSetup.
     nvsLoadAllSettings();
+
+#if defined(BOARD_HAS_PSRAM)
+    // Allocate drive data ring buffer in PSRAM
+    driveDataBuf = (DriveDataEntry *)heap_caps_calloc(
+        kDriveDataMax, sizeof(DriveDataEntry), MALLOC_CAP_SPIRAM);
+    if (driveDataBuf)
+        Serial.printf("Drive data: PSRAM buffer ready (%u entries)\n", (unsigned)kDriveDataMax);
+    else
+        Serial.println("Drive data: PSRAM alloc failed, recording disabled");
+#endif
 
     // Restore manual speed profile if non-auto mode
     if (!profileModeAutoRuntime && appHandler)
@@ -1366,7 +1510,7 @@ static void webServerInit()
     // HTTP server on Core 0
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.core_id = 0;
-    config.max_uri_handlers = 28;
+    config.max_uri_handlers = 32;
     config.lru_purge_enable = true;
     config.stack_size = 8192;
 
@@ -1429,6 +1573,14 @@ static void webServerInit()
         .uri = "/generate_204", .method = HTTP_GET, .handler = captiveRedirectHandler, .user_ctx = NULL};
     httpd_uri_t uriHotspot = {
         .uri = "/hotspot-detect.html", .method = HTTP_GET, .handler = captiveRedirectHandler, .user_ctx = NULL};
+    httpd_uri_t uriDriveDataToggle = {
+        .uri = "/api/drive-data/toggle", .method = HTTP_POST, .handler = driveDataToggleHandler, .user_ctx = NULL};
+    httpd_uri_t uriDriveDataClear = {
+        .uri = "/api/drive-data/clear", .method = HTTP_POST, .handler = driveDataClearHandler, .user_ctx = NULL};
+    httpd_uri_t uriDriveDataStatus = {
+        .uri = "/api/drive-data/status", .method = HTTP_GET, .handler = driveDataStatusHandler, .user_ctx = NULL};
+    httpd_uri_t uriDriveDataCsv = {
+        .uri = "/api/drive-data/csv", .method = HTTP_GET, .handler = driveDataCsvHandler, .user_ctx = NULL};
 
     httpd_register_uri_handler(webServer, &uriRoot);
     httpd_register_uri_handler(webServer, &uriStatus);
@@ -1456,6 +1608,10 @@ static void webServerInit()
     httpd_register_uri_handler(webServer, &uriCanLogClear);
     httpd_register_uri_handler(webServer, &uriGenerate204);
     httpd_register_uri_handler(webServer, &uriHotspot);
+    httpd_register_uri_handler(webServer, &uriDriveDataToggle);
+    httpd_register_uri_handler(webServer, &uriDriveDataClear);
+    httpd_register_uri_handler(webServer, &uriDriveDataStatus);
+    httpd_register_uri_handler(webServer, &uriDriveDataCsv);
 
     Serial.println("Web dashboard ready at http://192.168.4.1/");
     logRing.push("[BOOT] Web dashboard ready, waiting for CAN frames...", millis());

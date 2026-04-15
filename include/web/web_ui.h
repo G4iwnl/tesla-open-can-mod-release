@@ -222,6 +222,7 @@ body{
 }
 .ed-bar.green{background:linear-gradient(90deg,#1a7a35,var(--green))}
 .ed-bar.red{background:linear-gradient(90deg,#7a1a1a,var(--red))}
+.ed-bar.yellow{background:linear-gradient(90deg,#7a6a1a,#e6c200)}
 .ed-bar.blue{background:linear-gradient(90deg,#1a3a7a,var(--blue))}
 
 /* Hands-on level dots */
@@ -541,6 +542,7 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
 .light .toast{background:rgba(255,255,255,.95)}
 .light .ed-bar.green{background:linear-gradient(90deg,#a8e6b4,var(--green))}
 .light .ed-bar.red{background:linear-gradient(90deg,#f5a8a8,var(--red))}
+.light .ed-bar.yellow{background:linear-gradient(90deg,#f5e6a8,#e6c200)}
 .light .ed-bar.blue{background:linear-gradient(90deg,#a8c8f5,var(--blue))}
 .light .pill-btn.nav{background:rgba(0,122,255,.08);border-color:rgba(0,122,255,.2)}
 .light .dev-tag{background:rgba(255,149,0,.1);color:var(--amber)}
@@ -604,6 +606,11 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
   <div class="page active" id="pageDash">
     <div class="grid">
 
+      <!-- OTA protection warning banner -->
+      <div class="card span-full" id="otaBanner" style="display:none;background:var(--warn-bg,#fff3cd);border:1px solid var(--warn-border,#ffc107);padding:12px 16px;text-align:center">
+        <span style="font-weight:700;color:var(--warn-text,#856404)" id="iOtaPause">车辆 OTA 进行中，CAN 修改已暂停</span>
+      </div>
+
       <!-- ═══ Card 1: 实时信号 ═══ -->
       <div class="card span-full">
         <div class="card-title" id="iCardED">实时信号</div>
@@ -646,6 +653,34 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
               <div class="follow-bar" data-lv="7" style="height:24px"></div>
             </div>
             <div class="ed-lbl" id="iEdFollow">跟车距离</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Card 1b: 电池状态 ═══ -->
+      <div class="card span-full">
+        <div class="card-title" id="iCardBat">电池状态</div>
+        <div class="mode-row" style="grid-template-columns:repeat(5,1fr)">
+          <div class="ed-cell">
+            <div class="ed-val" id="batSoc">--%</div>
+            <div class="ed-bar green" id="barSoc" style="width:0%"></div>
+            <div class="ed-lbl" id="iBatSoc">电量</div>
+          </div>
+          <div class="ed-cell">
+            <div class="ed-val" id="batVolt">--</div>
+            <div class="ed-lbl" id="iBatVolt">电压 (V)</div>
+          </div>
+          <div class="ed-cell">
+            <div class="ed-val" id="batCurr">--</div>
+            <div class="ed-lbl" id="iBatCurr">电流 (A)</div>
+          </div>
+          <div class="ed-cell">
+            <div class="ed-val" id="batTMin">--</div>
+            <div class="ed-lbl" id="iBatTMin">最低温度</div>
+          </div>
+          <div class="ed-cell">
+            <div class="ed-val" id="batTMax">--</div>
+            <div class="ed-lbl" id="iBatTMax">最高温度</div>
           </div>
         </div>
       </div>
@@ -840,6 +875,20 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
 
       <!-- Logging toggle + Live log -->
       <div class="card span-full">
+        <div class="card-title" id="iCardDrive">行车数据记录</div>
+        <div class="row" style="padding-top:0">
+          <div class="row-info"><span class="row-name" id="iLblDriveRec">记录行车数据</span><span class="row-meta" id="iMetaDriveRec">记录 CAN 信号快照至内存</span></div>
+          <div class="row-ctrl"><label class="toggle"><input type="checkbox" id="tDriveRec" onchange="toggleDriveRec()"><span class="toggle-track"></span></label></div>
+        </div>
+        <div style="display:flex;gap:8px;padding:8px 16px 12px">
+          <button class="btn btn-primary" style="flex:1;font-size:14px;padding:10px" id="driveDownBtn" onclick="window.location.href='/api/drive-data/csv'"><span id="iDriveDownload">下载 CSV</span></button>
+          <button class="btn btn-danger" style="flex:1;font-size:14px;padding:10px" id="driveClearBtn" onclick="clearDriveData()"><span id="iDriveClear">清除</span></button>
+        </div>
+        <div style="text-align:center;font-size:12px;color:var(--text3);padding-bottom:8px" id="driveStatus">--</div>
+      </div>
+
+      <!-- Logging toggle + Live log (original) -->
+      <div class="card span-full">
         <div class="card-title" id="iCardLog">实时日志</div>
         <div class="row" style="padding-top:0">
           <div class="row-info"><span class="row-name" id="iLblLog">启用日志</span><span class="row-meta" id="iMetaLog">串口与 web 日志</span></div>
@@ -951,7 +1000,11 @@ zh:{
   smartEditTitle:'编辑智能偏移规则',
   langBtn:'EN',
 
-  bsCanState:'CAN',bsUp:'运行',bsErr:'错误'
+  bsCanState:'CAN',bsUp:'运行',bsErr:'错误',
+
+  cardBat:'电池状态',batSoc:'电量',batVolt:'电压 (V)',batCurr:'电流 (A)',batTMin:'最低温度',batTMax:'最高温度',
+  otaPause:'车辆 OTA 进行中，CAN 修改已暂停',
+  cardDrive:'行车数据记录',lblDriveRec:'记录行车数据',metaDriveRec:'记录 CAN 信号快照至内存',driveDownload:'下载 CSV',driveClear:'清除',driveEmpty:'无数据',driveRows:'条记录'
 },
 en:{
   tabDash:'Dashboard',tabSet:'Settings',tabSys:'System',
@@ -1027,7 +1080,11 @@ en:{
   smartEditTitle:'Edit Smart Offset Rules',
   langBtn:'中文',
 
-  bsCanState:'CAN',bsUp:'UP',bsErr:'ERR'
+  bsCanState:'CAN',bsUp:'UP',bsErr:'ERR',
+
+  cardBat:'BATTERY STATUS',batSoc:'SOC',batVolt:'VOLTAGE (V)',batCurr:'CURRENT (A)',batTMin:'TEMP MIN',batTMax:'TEMP MAX',
+  otaPause:'Vehicle OTA in progress — CAN mods paused',
+  cardDrive:'DRIVE DATA RECORDING',lblDriveRec:'Record Drive Data',metaDriveRec:'Snapshot CAN signals to memory',driveDownload:'Download CSV',driveClear:'Clear',driveEmpty:'No data',driveRows:'rows'
 }
 };
 
@@ -1341,6 +1398,24 @@ function updateDashboard(sig){
     var newVal=(sig.lightState>0)?'dark':'light';
     if(newVal!==window._autoThemeVal){window._autoThemeVal=newVal;applyTheme();}
   }
+
+  /* Battery (BMS) */
+  var soc=sig.bmsSoc_pct;
+  if(soc!==undefined&&soc>0){
+    $('batSoc').textContent=soc.toFixed(1)+'%';
+    $('barSoc').style.width=Math.min(soc,100)+'%';
+    $('barSoc').className='ed-bar '+(soc<20?'red':soc<50?'yellow':'green');
+  }
+  if(sig.bmsVoltage_V!==undefined&&sig.bmsVoltage_V>0)$('batVolt').textContent=sig.bmsVoltage_V.toFixed(1);
+  if(sig.bmsCurrent_A!==undefined)$('batCurr').textContent=sig.bmsCurrent_A.toFixed(1);
+  if(sig.bmsTempMin_C!==undefined&&sig.bmsTempMin_C>-40)$('batTMin').textContent=sig.bmsTempMin_C+'\u00b0C';
+  if(sig.bmsTempMax_C!==undefined&&sig.bmsTempMax_C>-40)$('batTMax').textContent=sig.bmsTempMax_C+'\u00b0C';
+
+  /* OTA protection banner */
+  var otaBanner=$('otaBanner');
+  if(otaBanner){
+    otaBanner.style.display=(sig.otaInProgress&&sig.otaInProgress>0)?'block':'none';
+  }
 }
 
 var canLiveErrCount=0;
@@ -1354,6 +1429,30 @@ async function pollCanLive(){
   }catch(e){
     canLiveErrCount++;
   }
+}
+
+/* ═══════════════════════════════════════════════════
+   Drive Data Recording
+   ═══════════════════════════════════════════════════ */
+async function toggleDriveRec(){
+  try{
+    var r=await fetch('/api/drive-data/toggle',{method:'POST'});
+    var d=await r.json();
+    $('tDriveRec').checked=d.recording;
+  }catch(e){$('tDriveRec').checked=false;}
+  pollDriveStatus();
+}
+async function clearDriveData(){
+  try{await fetch('/api/drive-data/clear',{method:'POST'});}catch(e){}
+  pollDriveStatus();
+}
+async function pollDriveStatus(){
+  try{
+    var r=await fetch('/api/drive-data/status');
+    var d=await r.json();
+    $('tDriveRec').checked=d.recording;
+    $('driveStatus').textContent=d.rows>0?(d.rows+' '+t('driveRows')+' / '+d.max+' max'):t('driveEmpty');
+  }catch(e){}
 }
 
 /* ═══════════════════════════════════════════════════
@@ -1727,6 +1826,7 @@ applyLang();
 setSLMode(slMode);
 poll();
 pollCanLive();
+pollDriveStatus();
 var _pollTimer=setInterval(poll,2000);
 var _canTimer=setInterval(pollCanLive,750);
 document.addEventListener('visibilitychange',function(){
