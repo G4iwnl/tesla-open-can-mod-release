@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-04-15
+
+### Added
+
+- Smart preheat: real-time battery temp/SOC status panel with elapsed timer, configurable auto-stop temperature threshold (-5°C to 25°C), and max duration limit (10-60 min)
+- Preheat auto-stop: automatically stops when battery temp reaches target or max duration exceeded
+- API: `/api/preheat/status` (GET) and `/api/preheat/config` (POST) endpoints for preheat monitoring and configuration
+
+### Fixed
+
+- Battery status panel: added missing i18n keys to `applyLang()` — labels now correctly translate when switching language
+- OTA banner and drive data card: added missing i18n bindings in `applyLang()`
+
 ## [1.5.0] - 2026-04-16
 
 ### Added

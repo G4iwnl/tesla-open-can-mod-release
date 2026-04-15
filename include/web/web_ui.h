@@ -826,13 +826,55 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
         </div>
       </div>
 
-      <!-- Module Enhancements -->
+      <!-- Module Enhancements — Smart Preheat -->
       <div class="card span-full">
         <div class="card-title" id="iCardLab">MODULE ENHANCEMENTS</div>
 
         <div class="row">
           <div class="row-info"><span class="row-name" id="iLblPreheat">预热模式</span><span class="row-meta" id="iMetaPreheat">注入 UI_tripPlanning (0x082) 500ms 周期</span></div>
           <div class="row-ctrl"><label class="toggle"><input type="checkbox" id="tPreheat" onchange="togFeat('/api/preheat',this,'confirmPreheat')"><span class="toggle-track"></span></label></div>
+        </div>
+
+        <!-- Preheat status panel (visible when active) -->
+        <div id="preheatPanel" style="display:none;padding:8px 16px 12px">
+          <div class="mode-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:8px">
+            <div class="ed-cell">
+              <div class="ed-val" id="phElapsed">--</div>
+              <div class="ed-lbl" id="iPhElapsed">已运行</div>
+            </div>
+            <div class="ed-cell">
+              <div class="ed-val" id="phTempMin">--</div>
+              <div class="ed-lbl" id="iPhTempMin">电池最低温</div>
+            </div>
+            <div class="ed-cell">
+              <div class="ed-val" id="phTempMax">--</div>
+              <div class="ed-lbl" id="iPhTempMax">电池最高温</div>
+            </div>
+            <div class="ed-cell">
+              <div class="ed-val" id="phSoc">--</div>
+              <div class="ed-lbl" id="iPhSoc">电量</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:4px">
+            <label style="font-size:12px;color:var(--text2)" id="iPhAutoStopLbl">自动停止温度</label>
+            <select class="txt" id="phAutoStopTemp" onchange="savePreheatConfig()" style="width:80px;padding:6px 8px;font-size:14px">
+              <option value="-5">-5°C</option>
+              <option value="0">0°C</option>
+              <option value="5">5°C</option>
+              <option value="10" selected>10°C</option>
+              <option value="15">15°C</option>
+              <option value="20">20°C</option>
+              <option value="25">25°C</option>
+            </select>
+            <label style="font-size:12px;color:var(--text2)" id="iPhMaxDurLbl">最长时间</label>
+            <select class="txt" id="phMaxDur" onchange="savePreheatConfig()" style="width:80px;padding:6px 8px;font-size:14px">
+              <option value="10">10 min</option>
+              <option value="20">20 min</option>
+              <option value="30" selected>30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">60 min</option>
+            </select>
+          </div>
         </div>
 
         <div class="hint" id="iLabHint">测试区功能必须接到真实 CAN 总线。空闲启用会导致 TX 错误飙升。</div>
@@ -1004,6 +1046,7 @@ zh:{
 
   cardBat:'电池状态',batSoc:'电量',batVolt:'电压 (V)',batCurr:'电流 (A)',batTMin:'最低温度',batTMax:'最高温度',
   otaPause:'车辆 OTA 进行中，CAN 修改已暂停',
+  phElapsed:'已运行',phTempMin:'电池最低温',phTempMax:'电池最高温',phSoc:'电量',phAutoStopLbl:'自动停止温度',phMaxDurLbl:'最长时间',
   cardDrive:'行车数据记录',lblDriveRec:'记录行车数据',metaDriveRec:'记录 CAN 信号快照至内存',driveDownload:'下载 CSV',driveClear:'清除',driveEmpty:'无数据',driveRows:'条记录'
 },
 en:{
@@ -1084,6 +1127,7 @@ en:{
 
   cardBat:'BATTERY STATUS',batSoc:'SOC',batVolt:'VOLTAGE (V)',batCurr:'CURRENT (A)',batTMin:'TEMP MIN',batTMax:'TEMP MAX',
   otaPause:'Vehicle OTA in progress — CAN mods paused',
+  phElapsed:'ELAPSED',phTempMin:'BAT TEMP MIN',phTempMax:'BAT TEMP MAX',phSoc:'SOC',phAutoStopLbl:'Auto-stop temp',phMaxDurLbl:'Max duration',
   cardDrive:'DRIVE DATA RECORDING',lblDriveRec:'Record Drive Data',metaDriveRec:'Snapshot CAN signals to memory',driveDownload:'Download CSV',driveClear:'Clear',driveEmpty:'No data',driveRows:'rows'
 }
 };
@@ -1432,6 +1476,49 @@ async function pollCanLive(){
 }
 
 /* ═══════════════════════════════════════════════════
+   Preheat Status Polling
+   ═══════════════════════════════════════════════════ */
+var _phTimer=null;
+function fmtElapsed(s){
+  var m=Math.floor(s/60),sec=s%60;
+  return m>0?(m+t('uptM')+sec+t('uptS')):(sec+t('uptS'));
+}
+async function pollPreheatStatus(){
+  try{
+    var r=await fetch('/api/preheat/status');
+    var d=await r.json();
+    var panel=$('preheatPanel');
+    if(d.active){
+      panel.style.display='block';
+      $('phElapsed').textContent=fmtElapsed(d.elapsed_s);
+      $('phTempMin').textContent=d.bat_temp_min>-40?(d.bat_temp_min+'\u00b0C'):'--';
+      $('phTempMax').textContent=d.bat_temp_max>-40?(d.bat_temp_max+'\u00b0C'):'--';
+      $('phSoc').textContent=d.bat_soc>0?d.bat_soc.toFixed(1)+'%':'--';
+      $('phAutoStopTemp').value=String(d.auto_stop_temp);
+      $('phMaxDur').value=String(d.max_duration_min);
+    }else{
+      panel.style.display='none';
+      // If preheat was auto-stopped, uncheck the toggle
+      $('tPreheat').checked=false;
+    }
+  }catch(e){}
+}
+function startPreheatPoll(){
+  if(!_phTimer)_phTimer=setInterval(pollPreheatStatus,2000);
+  pollPreheatStatus();
+}
+function stopPreheatPoll(){
+  if(_phTimer){clearInterval(_phTimer);_phTimer=null;}
+  $('preheatPanel').style.display='none';
+}
+async function savePreheatConfig(){
+  try{
+    await fetch('/api/preheat/config',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({auto_stop_temp:parseInt($('phAutoStopTemp').value),max_duration_min:parseInt($('phMaxDur').value)})});
+  }catch(e){}
+}
+
+/* ═══════════════════════════════════════════════════
    Drive Data Recording
    ═══════════════════════════════════════════════════ */
 async function toggleDriveRec(){
@@ -1556,6 +1643,8 @@ async function poll(){
     setFeatToggle('tNag',f.nag_killer);
     setFeatToggle('tCn',f.china_mode);
     setFeatToggle('tPreheat',f.preheat);
+    if(f.preheat&&f.preheat.enabled)startPreheatPoll();
+    else stopPreheatPoll();
     var logChecked=!!d.enable_print;
     if($('tLog').checked!==logChecked)$('tLog').checked=logChecked;
 
@@ -1747,6 +1836,14 @@ function applyLang(){
   $('iEdSteer').textContent=t('edSteer');
   $('iEdFollow').textContent=t('edFollow');
 
+  $('iCardBat').textContent=t('cardBat');
+  $('iBatSoc').textContent=t('batSoc');
+  $('iBatVolt').textContent=t('batVolt');
+  $('iBatCurr').textContent=t('batCurr');
+  $('iBatTMin').textContent=t('batTMin');
+  $('iBatTMax').textContent=t('batTMax');
+  $('iOtaPause').textContent=t('otaPause');
+
   $('iCardSLimits').textContent=t('cardSLimits');
   $('iSlFused').textContent=t('slFused');
   $('iSlMap').textContent=t('slMap');
@@ -1781,6 +1878,9 @@ function applyLang(){
   $('iCardLab').textContent=t('cardLab');
   $('iLblPreheat').textContent=t('lblPreheat');$('iMetaPreheat').textContent=t('metaPreheat');
   $('iLabHint').textContent=t('labHint');
+  $('iPhElapsed').textContent=t('phElapsed');$('iPhTempMin').textContent=t('phTempMin');
+  $('iPhTempMax').textContent=t('phTempMax');$('iPhSoc').textContent=t('phSoc');
+  $('iPhAutoStopLbl').textContent=t('phAutoStopLbl');$('iPhMaxDurLbl').textContent=t('phMaxDurLbl');
 
   $('iCardWifi').textContent=t('cardWifi');
   $('iLblSsid').textContent=t('lblSsid');$('iLblPass').textContent=t('lblPass');
@@ -1791,6 +1891,10 @@ function applyLang(){
 
   $('iCardLog').textContent=t('cardLog');
   $('iLblLog').textContent=t('lblLog');$('iMetaLog').textContent=t('metaLog');
+
+  $('iCardDrive').textContent=t('cardDrive');
+  $('iLblDriveRec').textContent=t('lblDriveRec');$('iMetaDriveRec').textContent=t('metaDriveRec');
+  $('iDriveDownload').textContent=t('driveDownload');$('iDriveClear').textContent=t('driveClear');
 
   if($('iBsCanState'))$('iBsCanState').textContent=t('bsCanState');
   if($('iBsUp'))$('iBsUp').textContent=t('bsUp');

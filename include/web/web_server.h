@@ -634,7 +634,70 @@ static esp_err_t preheatHandler(httpd_req_t *req)
 
     // Preheat state is in-memory only (not persisted) — see nvsLoadAllSettings()
     preheatRuntime = wantOn;
+    if (wantOn)
+        preheatStartMs = millis();
+    else
+        preheatStartMs = 0;
     Serial.printf("Web: PREHEAT set to %d (in-memory only)\n", (int)wantOn);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, "{\"ok\":true}", HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
+static esp_err_t preheatStatusHandler(httpd_req_t *req)
+{
+    DecodedSignals sig;
+    decodeSignals(canLive, sig);
+
+    bool active = (bool)preheatRuntime;
+    unsigned long elapsed = (active && preheatStartMs > 0) ? (millis() - preheatStartMs) / 1000 : 0;
+
+    char buf[256];
+    snprintf(buf, sizeof(buf),
+             "{\"active\":%s,\"elapsed_s\":%lu,\"bat_temp_min\":%d,\"bat_temp_max\":%d,"
+             "\"bat_soc\":%.1f,\"auto_stop_temp\":%d,\"max_duration_min\":%lu}",
+             active ? "true" : "false",
+             elapsed,
+             (int)sig.bmsTempMin, (int)sig.bmsTempMax,
+             sig.bmsSoc,
+             (int)preheatAutoStopTemp,
+             preheatMaxDurationMs / 60000UL);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, buf, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
+static esp_err_t preheatConfigHandler(httpd_req_t *req)
+{
+    char body[64];
+    int len = httpd_req_recv(req, body, sizeof(body) - 1);
+    if (len <= 0)
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "No body");
+        return ESP_FAIL;
+    }
+    body[len] = '\0';
+    cJSON *json = cJSON_Parse(body);
+    if (!json)
+    {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+    cJSON *temp = cJSON_GetObjectItem(json, "auto_stop_temp");
+    if (cJSON_IsNumber(temp))
+    {
+        int v = temp->valueint;
+        if (v >= -10 && v <= 30)
+            preheatAutoStopTemp = (int8_t)v;
+    }
+    cJSON *dur = cJSON_GetObjectItem(json, "max_duration_min");
+    if (cJSON_IsNumber(dur))
+    {
+        int v = dur->valueint;
+        if (v >= 5 && v <= 120)
+            preheatMaxDurationMs = (unsigned long)v * 60UL * 1000UL;
+    }
+    cJSON_Delete(json);
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, "{\"ok\":true}", HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
@@ -1510,7 +1573,7 @@ static void webServerInit()
     // HTTP server on Core 0
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.core_id = 0;
-    config.max_uri_handlers = 32;
+    config.max_uri_handlers = 36;
     config.lru_purge_enable = true;
     config.stack_size = 8192;
 
@@ -1545,6 +1608,10 @@ static void webServerInit()
         .uri = "/api/profile-mode-auto", .method = HTTP_POST, .handler = profileModeAutoHandler, .user_ctx = NULL};
     httpd_uri_t uriPreheat = {
         .uri = "/api/preheat", .method = HTTP_POST, .handler = preheatHandler, .user_ctx = NULL};
+    httpd_uri_t uriPreheatStatus = {
+        .uri = "/api/preheat/status", .method = HTTP_GET, .handler = preheatStatusHandler, .user_ctx = NULL};
+    httpd_uri_t uriPreheatConfig = {
+        .uri = "/api/preheat/config", .method = HTTP_POST, .handler = preheatConfigHandler, .user_ctx = NULL};
     httpd_uri_t uriHwMode = {
         .uri = "/api/hw-mode", .method = HTTP_POST, .handler = hwModeHandler, .user_ctx = NULL};
     httpd_uri_t uriSpeedProfile = {
@@ -1594,6 +1661,8 @@ static void webServerInit()
     httpd_register_uri_handler(webServer, &uriChinaMode);
     httpd_register_uri_handler(webServer, &uriProfileModeAuto);
     httpd_register_uri_handler(webServer, &uriPreheat);
+    httpd_register_uri_handler(webServer, &uriPreheatStatus);
+    httpd_register_uri_handler(webServer, &uriPreheatConfig);
     httpd_register_uri_handler(webServer, &uriHwMode);
     httpd_register_uri_handler(webServer, &uriSpeedProfile);
     httpd_register_uri_handler(webServer, &uriSpeedOffset);

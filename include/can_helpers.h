@@ -98,6 +98,9 @@ inline Shared<uint8_t> hwModeRuntime{2};
 // Source: flipper-tesla-fsd fsd_build_precondition_frame()
 inline constexpr bool kPreheatDefaultEnabled = false;
 inline Shared<bool> preheatRuntime{kPreheatDefaultEnabled};
+inline volatile unsigned long preheatStartMs = 0;       // millis() when preheat was enabled
+inline volatile int8_t preheatAutoStopTemp = 10;         // °C — auto-stop when bmsTempMin >= this
+inline volatile unsigned long preheatMaxDurationMs = 30UL * 60 * 1000; // 30 min default
 
 // Speed offset manual override (HW3 only).
 // When true, handler uses manualSpeedOffset instead of the CAN-read value.

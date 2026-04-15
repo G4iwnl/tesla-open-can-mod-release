@@ -265,6 +265,37 @@ static void appLoop()
         {
             lastPreheatMs = now;
 
+            // --- Auto-stop: duration limit ---
+            if (preheatStartMs > 0 && preheatMaxDurationMs > 0 &&
+                (now - preheatStartMs) >= preheatMaxDurationMs)
+            {
+                preheatRuntime = false;
+                char ebuf[LogRingBuffer::kMaxMsgLen];
+                snprintf(ebuf, sizeof(ebuf),
+                         "[PREHEAT] Auto-stopped: max duration %lu min reached",
+                         preheatMaxDurationMs / 60000UL);
+                logRing.push(ebuf, millis());
+                Serial.println(ebuf);
+                return;
+            }
+
+            // --- Auto-stop: battery temp threshold ---
+            {
+                DecodedSignals phSig;
+                decodeSignals(canLive, phSig);
+                if (phSig.bmsTempMin > -40 && phSig.bmsTempMin >= preheatAutoStopTemp)
+                {
+                    preheatRuntime = false;
+                    char ebuf[LogRingBuffer::kMaxMsgLen];
+                    snprintf(ebuf, sizeof(ebuf),
+                             "[PREHEAT] Auto-stopped: battery temp %d°C >= target %d°C",
+                             (int)phSig.bmsTempMin, (int)preheatAutoStopTemp);
+                    logRing.push(ebuf, millis());
+                    Serial.println(ebuf);
+                    return;
+                }
+            }
+
             // Bus-health guard: auto-disable if TX errors climb past the
             // ERROR_PASSIVE threshold. With single-shot mode this should
             // grow at +8 per failed frame, so the user gets ~16 cycles of
