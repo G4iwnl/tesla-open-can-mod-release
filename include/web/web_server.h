@@ -474,14 +474,9 @@ static esp_err_t statusHandler(httpd_req_t *req)
     bool preheat = (bool)preheatRuntime;
     int hwMode = (int)(uint8_t)hwModeRuntime;
 
-    // Build JSON with direct snprintf — single allocation replaces ~50 cJSON nodes
+    // Build JSON with direct snprintf — single static buffer (HTTP server is single-threaded)
     static constexpr size_t kBufSize = 8192;
-    char *buf = (char *)malloc(kBufSize);
-    if (!buf)
-    {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OOM");
-        return ESP_FAIL;
-    }
+    static char buf[kBufSize];
     size_t pos = 0;
 
 #define JS_APPEND(fmt, ...) \
@@ -657,7 +652,6 @@ static esp_err_t statusHandler(httpd_req_t *req)
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, buf, pos);
-    free(buf);
 
 #undef JS_APPEND
 #undef JS_BOOL
@@ -1527,98 +1521,77 @@ static esp_err_t driveDataCsvHandler(httpd_req_t *req)
 
 static esp_err_t canLiveHandler(httpd_req_t *req)
 {
-    canLive.sortById();
     DecodedSignals sig;
     decodeSignals(canLive, sig);
 
     // Record drive data snapshot if recording is active
     driveDataRecord(sig);
 
-    cJSON *root = cJSON_CreateObject();
-    cJSON_AddNumberToObject(root, "ids_seen", (int)canLive.slotCount());
-    cJSON_AddNumberToObject(root, "uptime_ms", millis());
+    // Build JSON with snprintf — zero cJSON allocation overhead
+    static constexpr size_t kBufSize = 8192;
+    char *buf = (char *)malloc(kBufSize);
+    if (!buf)
+    {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OOM");
+        return ESP_FAIL;
+    }
+    size_t pos = 0;
 
-    // Decoded signals
-    cJSON *decoded = cJSON_AddObjectToObject(root, "signals");
-    // Driving core
-    cJSON_AddNumberToObject(decoded, "vehicleSpeed_kph", sig.vehicleSpeed);
-    cJSON_AddNumberToObject(decoded, "uiSpeed", sig.uiSpeed);
-    cJSON_AddBoolToObject(decoded, "uiSpeedUnitsMph", sig.uiSpeedUnitsMph);
-    cJSON_AddNumberToObject(decoded, "di_gear", sig.di_gear);
-    cJSON_AddNumberToObject(decoded, "di_accelPedal_pct", sig.di_accelPedal);
-    cJSON_AddNumberToObject(decoded, "motorTorque_Nm", sig.motorTorque);
-    cJSON_AddNumberToObject(decoded, "espBrakeTorque_Nm", sig.espBrakeTorque);
-    cJSON_AddNumberToObject(decoded, "gpsSpeed_kph", sig.gpsSpeed);
-    // Steering
-    cJSON_AddNumberToObject(decoded, "handsOnLevel", sig.handsOnLevel);
-    cJSON_AddNumberToObject(decoded, "torsionBarTorque_Nm", sig.torsionBarTorque);
-    // Speed limits
-    cJSON_AddNumberToObject(decoded, "dasSetSpeed_kph", sig.dasSetSpeed);
-    cJSON_AddNumberToObject(decoded, "dasAccState", sig.dasAccState);
-    cJSON_AddNumberToObject(decoded, "accSpeedLimit_mph", sig.accSpeedLimit);
-    cJSON_AddNumberToObject(decoded, "fusedSpeedLimit_kph", sig.fusedSpeedLimit);
-    cJSON_AddNumberToObject(decoded, "visionSpeedLimit_kph", sig.visionSpeedLimit);
-    cJSON_AddNumberToObject(decoded, "mapSpeedLimit_kph", sig.mapSpeedLimit);
-    cJSON_AddNumberToObject(decoded, "vehicleSpeedLimit_kph", sig.vehicleSpeedLimit);
-    cJSON_AddNumberToObject(decoded, "mppSpeedLimit_kph", sig.mppSpeedLimit);
-    cJSON_AddNumberToObject(decoded, "userSpeedOffset", sig.userSpeedOffset);
-    cJSON_AddStringToObject(decoded, "userSpeedOffsetUnits",
-                            sig.userSpeedOffsetUnitsKph ? "KPH" : "MPH");
-    cJSON_AddNumberToObject(decoded, "followDistance", sig.followDistance);
-    // FSD
-    cJSON_AddBoolToObject(decoded, "fsdSelectedInUI", sig.fsdSelectedInUI);
-    cJSON_AddBoolToObject(decoded, "fsdEnabled", sig.fsdEnabled);
-    cJSON_AddBoolToObject(decoded, "fsdHw4Lock", sig.fsdHw4Lock);
-    cJSON_AddNumberToObject(decoded, "speedProfileHw3", sig.speedProfileHw3);
-    cJSON_AddNumberToObject(decoded, "speedProfileHw4", sig.speedProfileHw4);
-    cJSON_AddNumberToObject(decoded, "smartSetSpeedOffset_raw", sig.smartSetSpeedOffsetRaw);
-    cJSON_AddNumberToObject(decoded, "speedOffsetInjected", sig.speedOffsetInjected);
-    cJSON_AddBoolToObject(decoded, "suppressSpeedWarning", sig.suppressSpeedWarning);
-    cJSON_AddBoolToObject(decoded, "eceR79Nag", sig.eceR79Nag);
-    // Lighting
-    cJSON_AddNumberToObject(decoded, "lightState", sig.lightState);
-    // Battery (BMS)
-    cJSON_AddNumberToObject(decoded, "bmsVoltage_V", sig.bmsVoltage);
-    cJSON_AddNumberToObject(decoded, "bmsCurrent_A", sig.bmsCurrent);
-    cJSON_AddNumberToObject(decoded, "bmsSoc_pct", sig.bmsSoc);
-    cJSON_AddNumberToObject(decoded, "bmsTempMin_C", sig.bmsTempMin);
-    cJSON_AddNumberToObject(decoded, "bmsTempMax_C", sig.bmsTempMax);
-    // System
-    cJSON_AddNumberToObject(decoded, "otaInProgress", sig.otaInProgress);
+#define CL_APPEND(fmt, ...) \
+    do { \
+        int _n = snprintf(buf + pos, kBufSize - pos, fmt, ##__VA_ARGS__); \
+        if (_n > 0 && pos + (size_t)_n < kBufSize) pos += (size_t)_n; \
+    } while (0)
 
-    // Raw frame table: every CAN ID seen, with raw bytes + stats
-    cJSON *frames = cJSON_AddArrayToObject(root, "frames");
+    CL_APPEND("{\"ids_seen\":%u,\"uptime_ms\":%lu,\"signals\":{", (unsigned)canLive.slotCount(), (unsigned long)millis());
+
+    // Decoded signals — inline
+    CL_APPEND("\"vehicleSpeed_kph\":%.2f,\"uiSpeed\":%.1f,\"uiSpeedUnitsMph\":%s,",
+              sig.vehicleSpeed, sig.uiSpeed, sig.uiSpeedUnitsMph ? "true" : "false");
+    CL_APPEND("\"di_gear\":%u,\"di_accelPedal_pct\":%.1f,\"motorTorque_Nm\":%.1f,\"espBrakeTorque_Nm\":%.1f,\"gpsSpeed_kph\":%.2f,",
+              sig.di_gear, sig.di_accelPedal, sig.motorTorque, sig.espBrakeTorque, sig.gpsSpeed);
+    CL_APPEND("\"handsOnLevel\":%u,\"torsionBarTorque_Nm\":%.2f,", sig.handsOnLevel, sig.torsionBarTorque);
+    CL_APPEND("\"dasSetSpeed_kph\":%.1f,\"dasAccState\":%u,\"accSpeedLimit_mph\":%.1f,",
+              sig.dasSetSpeed, sig.dasAccState, sig.accSpeedLimit);
+    CL_APPEND("\"fusedSpeedLimit_kph\":%d,\"visionSpeedLimit_kph\":%d,\"mapSpeedLimit_kph\":%d,",
+              sig.fusedSpeedLimit, sig.visionSpeedLimit, sig.mapSpeedLimit);
+    CL_APPEND("\"vehicleSpeedLimit_kph\":%d,\"mppSpeedLimit_kph\":%d,\"userSpeedOffset\":%d,\"userSpeedOffsetUnits\":\"%s\",",
+              sig.vehicleSpeedLimit, sig.mppSpeedLimit, sig.userSpeedOffset, sig.userSpeedOffsetUnitsKph ? "KPH" : "MPH");
+    CL_APPEND("\"followDistance\":%u,", sig.followDistance);
+    CL_APPEND("\"fsdSelectedInUI\":%s,\"fsdEnabled\":%s,\"fsdHw4Lock\":%s,",
+              sig.fsdSelectedInUI ? "true" : "false", sig.fsdEnabled ? "true" : "false", sig.fsdHw4Lock ? "true" : "false");
+    CL_APPEND("\"speedProfileHw3\":%u,\"speedProfileHw4\":%u,\"smartSetSpeedOffset_raw\":%d,\"speedOffsetInjected\":%u,",
+              sig.speedProfileHw3, sig.speedProfileHw4, sig.smartSetSpeedOffsetRaw, sig.speedOffsetInjected);
+    CL_APPEND("\"suppressSpeedWarning\":%s,\"eceR79Nag\":%s,", sig.suppressSpeedWarning ? "true" : "false", sig.eceR79Nag ? "true" : "false");
+    CL_APPEND("\"lightState\":%u,", sig.lightState);
+    CL_APPEND("\"bmsVoltage_V\":%.2f,\"bmsCurrent_A\":%.1f,\"bmsSoc_pct\":%.1f,\"bmsTempMin_C\":%d,\"bmsTempMax_C\":%d,",
+              sig.bmsVoltage, sig.bmsCurrent, sig.bmsSoc, (int)sig.bmsTempMin, (int)sig.bmsTempMax);
+    CL_APPEND("\"otaInProgress\":%u},", sig.otaInProgress);
+
+    // Raw frame table — snprintf directly
+    unsigned long nowMs = millis();
+    float uptimeSec = nowMs > 1000 ? (nowMs / 1000.0f) : 1.0f;
+    CL_APPEND("\"frames\":[");
     for (size_t i = 0; i < canLive.slotCount(); i++)
     {
         const auto &s = canLive.slot(i);
-        cJSON *f = cJSON_CreateObject();
-        char idHex[8];
-        snprintf(idHex, sizeof(idHex), "0x%03X", (unsigned)s.id);
-        cJSON_AddStringToObject(f, "id", idHex);
-        cJSON_AddNumberToObject(f, "id_dec", s.id);
-        cJSON_AddNumberToObject(f, "dlc", s.dlc);
-
+        if (i > 0) CL_APPEND(",");
         char dataHex[24];
-        int pos = 0;
+        int dp = 0;
         for (int b = 0; b < s.dlc && b < 8; b++)
-            pos += snprintf(dataHex + pos, sizeof(dataHex) - pos, "%02X", s.data[b]);
-        dataHex[pos] = '\0';
-        cJSON_AddStringToObject(f, "data", dataHex);
-
-        cJSON_AddNumberToObject(f, "count", s.count);
-        cJSON_AddNumberToObject(f, "last_ms", s.last_ms);
-        float hz = (millis() > 1000 && s.count > 1)
-                        ? (float)s.count / (millis() / 1000.0f)
-                        : 0;
-        cJSON_AddNumberToObject(f, "hz", hz);
-        cJSON_AddItemToArray(frames, f);
+            dp += snprintf(dataHex + dp, sizeof(dataHex) - dp, "%02X", s.data[b]);
+        dataHex[dp] = '\0';
+        float hz = s.count > 1 ? (float)s.count / uptimeSec : 0;
+        CL_APPEND("{\"id\":%u,\"dlc\":%u,\"data\":\"%s\",\"count\":%lu,\"hz\":%.1f}",
+                  (unsigned)s.id, (unsigned)s.dlc, dataHex, (unsigned long)s.count, hz);
     }
+    CL_APPEND("]}");
 
-    char *json = cJSON_PrintUnformatted(root);
+#undef CL_APPEND
+
     httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);
-    free(json);
-    cJSON_Delete(root);
+    httpd_resp_send(req, buf, pos);
+    free(buf);
     return ESP_OK;
 }
 

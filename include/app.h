@@ -216,11 +216,13 @@ static void appLoop()
     digitalWrite(PIN_LED, HIGH);
 
 #if defined(RUNTIME_HW_SWITCH) && !defined(NATIVE_BUILD)
+    // ─── Shared decoded signals for OTA check + smart offset ───
+    DecodedSignals _loopSig;
+    decodeSignals(canLive, _loopSig);
+
     // ─── OTA protection: pause CAN mods when vehicle OTA is detected ───
     {
-        DecodedSignals otaSig;
-        decodeSignals(canLive, otaSig);
-        bool otaNow = (otaSig.otaInProgress > 0);
+        bool otaNow = (_loopSig.otaInProgress > 0);
         if (otaNow != vehicleOtaPaused)
         {
             vehicleOtaPaused = otaNow;
@@ -241,9 +243,7 @@ static void appLoop()
         if (now - lastSmartMs >= 500)
         {
             lastSmartMs = now;
-            DecodedSignals sig;
-            decodeSignals(canLive, sig);
-            int limit = sig.fusedSpeedLimit;
+            int limit = _loopSig.fusedSpeedLimit;
             if (limit > 0)
             {
                 int pct = smartOffsetRules.lookup(limit);
@@ -290,15 +290,13 @@ static void appLoop()
 
             // --- Auto-stop: battery temp threshold ---
             {
-                DecodedSignals phSig;
-                decodeSignals(canLive, phSig);
-                if (phSig.bmsTempMin > -40 && phSig.bmsTempMin >= preheatAutoStopTemp)
+                if (_loopSig.bmsTempMin > -40 && _loopSig.bmsTempMin >= preheatAutoStopTemp)
                 {
                     preheatRuntime = false;
                     char ebuf[LogRingBuffer::kMaxMsgLen];
                     snprintf(ebuf, sizeof(ebuf),
                              "[PREHEAT] Auto-stopped: battery temp %d°C >= target %d°C",
-                             (int)phSig.bmsTempMin, (int)preheatAutoStopTemp);
+                             (int)_loopSig.bmsTempMin, (int)preheatAutoStopTemp);
                     logRing.push(ebuf, millis());
                     Serial.println(ebuf);
                     return;

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-04-16
+
+### Performance
+
+- **canLiveHandler**: Replaced cJSON tree (~64 malloc/free per poll) with zero-allocation snprintf serialization
+- **statusHandler**: Static 8KB buffer eliminates per-call heap allocation
+- **decodeSignals**: Deduplicated 3→1 calls per app loop iteration (OTA check + smart offset + preheat share one decode pass)
+- **Canvas chart**: requestAnimationFrame throttling, skip redraw when Dashboard tab not visible
+- **CAN frame table**: requestAnimationFrame-batched DOM updates instead of inline innerHTML per poll
+- **DOM queries**: Cached querySelectorAll results for handsDots, followBars, modeCards, offsetBtns (eliminate repeated DOM scans)
+- **Poll interval**: can-live reduced from 750ms to 1000ms (33% fewer network requests)
+- **sortById() removed**: Eliminated O(n²) insertion sort on every can-live poll (slots already O(1) via idxMap)
+
 ## [1.6.0] - 2025-07-23
 
 ### Added

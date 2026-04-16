@@ -1485,7 +1485,8 @@ function updateDashboard(sig){
   /* Hands on level */
   var hands=sig.handsOnLevel||0;
   $('edHands').textContent=getHandsText(hands);
-  document.querySelectorAll('#handsDots .hands-dot').forEach(function(dot){
+  if(!window._handsDots)window._handsDots=[].slice.call(document.querySelectorAll('#handsDots .hands-dot'));
+  window._handsDots.forEach(function(dot){
     var lv=parseInt(dot.dataset.lv);
     var isActive=lv<=hands;
     dot.className='hands-dot'+(isActive?' active':'')+(isActive&&hands>=2?' lv'+hands:'');
@@ -1498,7 +1499,8 @@ function updateDashboard(sig){
   /* Follow distance */
   var follow=sig.followDistance||0;
   $('edFollow').textContent=follow>0?follow:'--';
-  document.querySelectorAll('#followBars .follow-bar').forEach(function(bar){
+  if(!window._followBars)window._followBars=[].slice.call(document.querySelectorAll('#followBars .follow-bar'));
+  window._followBars.forEach(function(bar){
     var lv=parseInt(bar.dataset.lv);
     bar.classList.toggle('active',lv<=follow);
   });
@@ -1544,7 +1546,6 @@ function updateDashboard(sig){
   var chartPowerVal=0;
   if(sig.bmsVoltage_V&&sig.bmsCurrent_A)chartPowerVal=Math.abs(sig.bmsVoltage_V*sig.bmsCurrent_A/1000);
   pushChart(chartSpeedVal,chartSocVal,chartPowerVal);
-  drawChart();
 }
 
 var canLiveErrCount=0;
@@ -1687,7 +1688,8 @@ async function poll(){
         $('smartCurPct').textContent=Math.round((d.speed_offset||0)/4);
       }else{
         var soPct=Math.round((d.speed_offset||0)/4);
-        document.querySelectorAll('#offsetBtns .mode-card').forEach(function(b){
+        if(!window._offBtns)window._offBtns=[].slice.call(document.querySelectorAll('#offsetBtns .mode-card'));
+        window._offBtns.forEach(function(b){
           b.classList.toggle('active',parseInt(b.dataset.off)===soPct);
         });
       }
@@ -1726,7 +1728,8 @@ async function poll(){
       segSet('sgProfSrc',isAuto?'1':'0');
       updateModeCardsState(isAuto);
     }
-    document.querySelectorAll('#modeRow .mode-card').forEach(function(c){
+    if(!window._modeCards)window._modeCards=[].slice.call(document.querySelectorAll('#modeRow .mode-card'));
+    window._modeCards.forEach(function(c){
       c.classList.toggle('active',c.dataset.val===String(d.speed_profile));
     });
 
@@ -2031,13 +2034,20 @@ function applyTheme(){
 /* ═══════════════════════════════════════════════════
    Real-time Chart (Canvas 2D)
    ═══════════════════════════════════════════════════ */
-var chartLen=120,chartSpd=[],chartSoc=[],chartPwr=[];
+var chartLen=120,chartSpd=[],chartSoc=[],chartPwr=[],_chartDirty=false,_chartRaf=false;
 function pushChart(spd,soc,pwr){
   chartSpd.push(spd);chartSoc.push(soc);chartPwr.push(pwr);
   if(chartSpd.length>chartLen){chartSpd.shift();chartSoc.shift();chartPwr.shift();}
+  _chartDirty=true;
+  if(!_chartRaf){_chartRaf=true;requestAnimationFrame(drawChart);}
 }
 function drawChart(){
+  _chartRaf=false;
+  if(!_chartDirty)return;
+  _chartDirty=false;
   var cv=$('chartCanvas');if(!cv||!cv.getContext)return;
+  // Skip if Dashboard tab not active
+  var pg=$('pageDash');if(pg&&!pg.classList.contains('active'))return;
   var dpr=window.devicePixelRatio||1;
   var w=cv.clientWidth,h=cv.clientHeight;
   if(cv.width!==w*dpr||cv.height!==h*dpr){cv.width=w*dpr;cv.height=h*dpr;}
@@ -2061,36 +2071,37 @@ function drawChart(){
 }
 
 /* ═══════════════════════════════════════════════════
-   CAN Frame Viewer
+   CAN Frame Viewer (throttled to 2fps max)
    ═══════════════════════════════════════════════════ */
-var canFrames={},canFrameTs={};
+var canFrames={},_canDirty=false,_canRafPending=false;
 function updateCanTable(frames){
   if(!frames||!frames.length)return;
   var now=Date.now();
   for(var i=0;i<frames.length;i++){
     var f=frames[i];
     var key=f.id;
-    if(!canFrames[key])canFrames[key]={id:f.id,dlc:f.dlc,data:f.data,count:0,hz:0,lastTs:now};
-    var cf=canFrames[key];
-    cf.dlc=f.dlc;cf.data=f.data;cf.count++;
-    if(cf.lastTs&&cf.lastTs<now){
-      var dt=(now-cf.lastTs)/1000;
-      cf.hz=dt>0?Math.round(1/dt):0;
-    }
-    cf.lastTs=now;
+    if(!canFrames[key])canFrames[key]={id:f.id,dlc:f.dlc,data:f.data,count:f.count,hz:f.hz};
+    else{var cf=canFrames[key];cf.dlc=f.dlc;cf.data=f.data;cf.count=f.count;cf.hz=f.hz;}
   }
+  _canDirty=true;
+  if(!_canRafPending){_canRafPending=true;requestAnimationFrame(renderCanTable);}
+}
+function renderCanTable(){
+  _canRafPending=false;
+  if(!_canDirty)return;
+  _canDirty=false;
   var filter=$('canFilterInput').value.trim().toLowerCase();
-  var keys=Object.keys(canFrames).sort(function(a,b){return parseInt(a)-parseInt(b)});
-  var shown=0,html='';
+  var keys=Object.keys(canFrames).sort(function(a,b){return a-b});
+  var shown=0,parts=[];
   for(var k=0;k<keys.length;k++){
     var fr=canFrames[keys[k]];
     var hexId='0x'+fr.id.toString(16).toUpperCase().padStart(3,'0');
     var decId=String(fr.id);
     if(filter&&hexId.toLowerCase().indexOf(filter)===-1&&decId.indexOf(filter)===-1)continue;
     shown++;
-    html+='<tr><td>'+hexId+'</td><td>'+decId+'</td><td>'+fr.dlc+'</td><td>'+fr.data+'</td><td>'+fr.count+'</td><td>'+fr.hz+'</td></tr>';
+    parts.push('<tr><td>'+hexId+'</td><td>'+decId+'</td><td>'+fr.dlc+'</td><td>'+fr.data+'</td><td>'+fr.count+'</td><td>'+fr.hz.toFixed(1)+'</td></tr>');
   }
-  $('canTableBody').innerHTML=html;
+  $('canTableBody').innerHTML=parts.join('');
   $('canIdCount').textContent=shown+' / '+keys.length+' IDs';
 }
 
@@ -2117,10 +2128,10 @@ poll();
 pollCanLive();
 pollDriveStatus();
 var _pollTimer=setInterval(poll,2000);
-var _canTimer=setInterval(pollCanLive,750);
+var _canTimer=setInterval(pollCanLive,1000);
 document.addEventListener('visibilitychange',function(){
   if(document.hidden){clearInterval(_pollTimer);clearInterval(_canTimer);}
-  else{poll();pollCanLive();_pollTimer=setInterval(poll,2000);_canTimer=setInterval(pollCanLive,750);}
+  else{poll();pollCanLive();_pollTimer=setInterval(poll,2000);_canTimer=setInterval(pollCanLive,1000);}
 });
 function updVp(){$('iVp').textContent=window.innerWidth+'×'+window.innerHeight}
 updVp();window.addEventListener('resize',updVp);
