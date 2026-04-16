@@ -24,7 +24,7 @@ function HomepageHeader() {
           </Link>
           <Link
             className="button button--secondary button--lg"
-            href="https://gitlab.com/tesla-open-can-mod/tesla-open-can-mod">
+            href="https://github.com/ylovex75/tesla-open-can-mod-release">
             View Source
           </Link>
         </div>
@@ -47,7 +47,7 @@ const features = [
   {
     title: 'Multi-Board Support',
     description:
-      'Works with Feather RP2040 CAN, Feather M4 CAN Express, ESP32 with TWAI, and M5Stack Atomic CAN Base.',
+      'Works with ESP32, ESP32-S3, M5Stack Atomic CAN Base, and Waveshare ESP32-S3 RS485/CAN. All use native TWAI driver.',
   },
   {
     title: 'Actually Smart Summon',
@@ -67,7 +67,7 @@ const features = [
   {
     title: 'Tested & CI-backed',
     description:
-      'Comprehensive unit tests with Unity framework. GitLab CI validates every commit across all board variants.',
+      'Comprehensive unit tests with Unity framework. 114+ tests validate all handlers across HW3, HW4, and Legacy variants.',
   },
 ];
 
@@ -107,11 +107,11 @@ function DisclaimerBanner() {
 
 function SupportedHardware() {
   const boards = [
-    {name: 'Feather RP2040 CAN', interface: 'MCP2515 over SPI', status: 'Tested'},
-    {name: 'Feather M4 CAN Express', interface: 'Native MCAN (ATSAME51)', status: 'Tested'},
     {name: 'ESP32 + CAN Transceiver', interface: 'Native TWAI', status: 'Tested'},
+    {name: 'ESP32-S3 + CAN Transceiver', interface: 'Native TWAI', status: 'Tested'},
+    {name: 'Waveshare ESP32-S3 RS485/CAN', interface: 'SIT1051T over TWAI', status: 'Tested'},
     {name: 'M5Stack Atomic CAN Base', interface: 'CA-IS3050G over TWAI', status: 'Tested'},
-    {name: 'M5Stack AtomS3 CAN Base', interface: 'CA-IS3050G over TWAI', status: 'Build target'},
+    {name: 'M5Stack AtomS3 CAN Base', interface: 'CA-IS3050G over TWAI', status: 'Tested'},
   ];
 
   return (

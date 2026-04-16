@@ -408,11 +408,10 @@ tesla-open-can-mod/
 │   ├── app.h               # 应用主逻辑
 │   ├── handlers.h          # CAN 报文处理（HW3/HW4/Legacy）
 │   ├── can_helpers.h       # CAN 辅助函数
-│   ├── drivers/            # CAN 驱动（TWAI/MCP2515/SAME51）
+│   ├── drivers/            # CAN 驱动（TWAI）
 │   └── web/
 │       ├── web_server.h    # HTTP 服务器 + API + DNS + WiFi
 │       └── web_ui.h        # 前端界面（HTML/CSS/JS）
-├── RP2040CAN/              # Arduino IDE 入口
 ├── router-config/          # 路由器隔离方案
 │   ├── tesla-iso/          # v1.0 工程化方案（推荐）
 │   │   ├── deploy.sh       # 远程一键部署

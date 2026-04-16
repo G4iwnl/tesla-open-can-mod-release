@@ -25,31 +25,10 @@ CAN message 921 includes a checksum in bits 56-63. When modifying this message, 
 
 ## Configuration
 
-This feature is optional and must be explicitly enabled at compile time:
+This feature is optional and must be explicitly enabled at compile time via PlatformIO build flag:
 
-```cpp
-#define ISA_SPEED_CHIME_SUPPRESS
-```
-
-### Arduino IDE
-
-In `sketch_config.h`:
-
-```cpp
-// #define ISA_SPEED_CHIME_SUPPRESS
-```
-
-Uncomment this line and upload.
-
-### PlatformIO
-
-Use the command-line configuration tool:
-
-```bash
-python3 scripts/platformio_set_ino_profile.py \
-  --driver DRIVER_TWAI \
-  --vehicle HW4 \
-  --enable ISA_SPEED_CHIME_SUPPRESS
+```ini
+-DISA_SPEED_CHIME_SUPPRESS
 ```
 
 Then build and flash:

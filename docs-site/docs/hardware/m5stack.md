@@ -17,11 +17,7 @@ The most compact board option. Uses the CA-IS3050G CAN transceiver over the ESP3
 
 ## Configuration
 
-In `sketch_config.h`:
-
-```cpp
-#define DRIVER_TWAI
-```
+The M5Stack boards use the `DRIVER_TWAI` driver, which is already configured in their PlatformIO environments.
 
 ## PlatformIO
 

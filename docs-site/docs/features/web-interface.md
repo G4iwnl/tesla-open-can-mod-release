@@ -13,7 +13,7 @@ ESP32 boards (and M5Stack Atomic CAN Base) feature an optional web interface for
 1. **Power on the board** — it will create a WiFi hotspot
 2. **Connect to WiFi**:
    - Network: `TeslaCAN`
-   - Password: `canmod12`
+   - Password: `12345678`
 3. **Open a browser** and navigate to: `http://192.168.4.1`
 
 ## Features
@@ -85,7 +85,7 @@ Update your board's firmware wirelessly without needing a USB cable.
 - Do **not power off or disconnect WiFi** during the update process
 - A successful update message will appear in the OTA Status area
 - If the update fails, the board will retain the previous firmware
-- In the sketch_config.sh you can enable all the things, by default on the esp32 it will be turned off or on, selected in the webUI.
+- In `platformio.ini` you can enable all the features via build flags; they can be toggled at runtime in the web UI.
 
 ## Available Endpoints
 
@@ -108,4 +108,4 @@ pio run -e esp32_twai
 pio run -e m5stack-atomic-can-base
 ```
 
-Other boards (RP2040, M4) do not have web interface support.
+All ESP32-based boards support the web interface.

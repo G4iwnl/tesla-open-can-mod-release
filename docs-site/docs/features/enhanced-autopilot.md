@@ -25,10 +25,12 @@ sidebar_position: 4
 
 - **HW3 or HW4 vehicle**
 - Active Tesla entitlement for the relevant Autopilot package
-- `ENHANCED_AUTOPILOT` enabled in `RP2040CAN/sketch_config.h`
+- `ENHANCED_AUTOPILOT` build flag enabled in `platformio.ini`
 
-```cpp
-#define ENHANCED_AUTOPILOT
+In your PlatformIO environment's `build_flags`, add:
+
+```ini
+-DENHANCED_AUTOPILOT
 ```
 
 :::note

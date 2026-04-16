@@ -81,7 +81,7 @@ const config: Config = {
             },
             {
               label: 'Hardware',
-              to: '/docs/hardware/feather-rp2040',
+              to: '/docs/hardware/esp32',
             },
           ],
         },
@@ -93,8 +93,8 @@ const config: Config = {
               href: 'https://discord.gg/ZTQKAUTd2F',
             },
             {
-              label: 'GitLab',
-              href: 'https://gitlab.com/tesla-open-can-mod/tesla-open-can-mod',
+              label: 'GitHub',
+              href: 'https://github.com/ylovex75/tesla-open-can-mod-release',
             },
           ],
         },

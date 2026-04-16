@@ -6,8 +6,6 @@ sidebar_position: 2
 
 ## Board Not Detected
 
-**Feather boards:** Double-press the **Reset** button to enter the UF2 bootloader, then retry the upload command.
-
 **ESP32 boards:** Hold the **BOOT** button during upload if auto-reset does not work.
 
 ## No Serial Output
@@ -27,20 +25,18 @@ sidebar_position: 2
 1. Verify you have an active FSD subscription or purchase
 2. Check that "Traffic Light and Stop Sign Control" is enabled in Autopilot settings (unless using `BYPASS_TLSSC_REQUIREMENT`)
 3. Open the Serial Monitor and check if the handler output shows `FSD: 1`
-4. Verify you selected the correct vehicle variant in `sketch_config.h`
+4. Verify you selected the correct vehicle variant (`-DHW3`, `-DHW4`, or `-DLEGACY`) in `platformio.ini` build flags
 5. HW4 on FSD v13: Make sure you compiled with `HW3`, not `HW4`
 
 ## Build Errors
 
 ### Board/driver mismatch
 
-If the PlatformIO `-e` environment doesn't match the `DRIVER_*` define in `sketch_config.h`, the build will fail with a clear error. Make sure they match.
+If the PlatformIO `-e` environment doesn't match the vehicle define in `platformio.ini` build flags, the build will fail. Make sure they match.
 
 ### Missing libraries
 
-- **Feather RP2040:** Install **MCP2515 by autowp** in Arduino IDE
-- **Feather M4:** Install **Adafruit CAN** in Arduino IDE
-- **ESP32:** No additional libraries needed
+- **ESP32:** No additional libraries needed — the TWAI driver is built into the ESP32 Arduino core
 
 ### Native test compilation fails (Windows)
 

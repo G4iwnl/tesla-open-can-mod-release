@@ -32,18 +32,7 @@ If you have other GPIO Pins connected to the CAN transceiver Module. You can def
 
 ## Configuration
 
-In `sketch_config.h`:
-
-```cpp
-#define DRIVER_TWAI
-```
-
-## Arduino IDE Setup
-
-1. Add board URL: `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
-2. Install **esp32 by Espressif Systems** from Boards Manager
-3. Select your ESP32 board (e.g. **ESP32 Dev Module**)
-4. No additional libraries needed — the TWAI driver is built into the ESP32 Arduino core
+The `DRIVER_TWAI` driver is already configured in the PlatformIO environments (`esp32_twai`, `waveshare_esp32s3_rs485_can`).
 
 ## PlatformIO
 

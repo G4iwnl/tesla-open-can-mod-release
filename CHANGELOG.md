@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Poll interval**: can-live reduced from 750ms to 1000ms (33% fewer network requests)
 - **sortById() removed**: Eliminated O(n²) insertion sort on every can-live poll (slots already O(1) via idxMap)
 
-## [1.6.0] - 2025-07-23
+## [1.6.0] - 2026-04-16
 
 ### Added
 
@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **OTA MD5 Verification**: Firmware upload integrity check using Web Crypto API (client) + Arduino Update.setMD5 (server)
 - **NVS Corruption Recovery**: Enhanced NVS init with erase-on-corruption fallback and logging to ring buffer
 
-## [1.5.1] - 2026-04-15
+## [1.5.1] - 2026-04-16
 
 ### Added
 
@@ -46,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Battery status panel: added missing i18n keys to `applyLang()` — labels now correctly translate when switching language
 - OTA banner and drive data card: added missing i18n bindings in `applyLang()`
 
-## [1.5.0] - 2026-04-16
+## [1.5.0] - 2026-04-15
 
 ### Added
 

@@ -18,14 +18,14 @@ The firmware sets the detection enable bit in CAN message 1021, mux 0, which act
 
 ## Configuration
 
-This feature is optional and must be explicitly enabled in `sketch_config.h`:
+This feature is optional and must be explicitly enabled via PlatformIO build flag:
 
-```cpp
-#define EMERGENCY_VEHICLE_DETECTION
+```ini
+-DEMERGENCY_VEHICLE_DETECTION
 ```
 
 ## Requirements
 
 - **HW4 vehicle only**
 - **FSD v14** (firmware 2026.2.9.X or later)
-- `EMERGENCY_VEHICLE_DETECTION` define enabled in configuration
+- `-DEMERGENCY_VEHICLE_DETECTION` build flag enabled in `platformio.ini`
