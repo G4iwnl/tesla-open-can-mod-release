@@ -12,7 +12,12 @@
 #include <lwip/sockets.h>
 #include <cJSON.h>
 #include <Update.h>
+#include <esp_system.h>
 #include <driver/twai.h>
+#if !defined(CONFIG_IDF_TARGET_ESP32)
+#include <driver/temp_sensor.h>
+#define HAS_TEMP_SENSOR 1
+#endif
 
 #include "shared_types.h"
 #include "can_helpers.h"
@@ -34,7 +39,17 @@ static constexpr char kNvsKeyManualProfile[] = "man_profile";
 static constexpr char kNvsKeyWifiSsid[] = "wifi_ssid";
 static constexpr char kNvsKeyWifiPass[] = "wifi_pass";
 static constexpr char kNvsKeyPreheat[] = "preheat";
+static constexpr char kNvsKeySmartOffsetEn[] = "smart_off_en";
+static constexpr char kNvsKeySmartOffsetN[] = "smart_off_n";
+static constexpr char kNvsKeySmartOffsetR[] = "smart_off_r";
+static constexpr char kNvsKeyManualOffMode[] = "man_off_mode";
+static constexpr char kNvsKeyManualOffVal[] = "man_off_val";
 
+static_assert(sizeof(kNvsKeySmartOffsetEn) - 1 <= 15, "NVS key too long");
+static_assert(sizeof(kNvsKeySmartOffsetN) - 1 <= 15, "NVS key too long");
+static_assert(sizeof(kNvsKeySmartOffsetR) - 1 <= 15, "NVS key too long");
+static_assert(sizeof(kNvsKeyManualOffMode) - 1 <= 15, "NVS key too long");
+static_assert(sizeof(kNvsKeyManualOffVal) - 1 <= 15, "NVS key too long");
 static_assert(sizeof(kNvsKeyIsaSpeedChime) - 1 <= 15, "NVS key too long");
 static_assert(sizeof(kNvsKeyEmergencyVehicleDetection) - 1 <= 15, "NVS key too long");
 static_assert(sizeof(kNvsKeyEnhancedAutopilot) - 1 <= 15, "NVS key too long");
@@ -46,6 +61,15 @@ static_assert(sizeof(kNvsKeyManualProfile) - 1 <= 15, "NVS key too long");
 static_assert(sizeof(kNvsKeyWifiSsid) - 1 <= 15, "NVS key too long");
 static_assert(sizeof(kNvsKeyWifiPass) - 1 <= 15, "NVS key too long");
 static_assert(sizeof(kNvsKeyPreheat) - 1 <= 15, "NVS key too long");
+
+// Handler latency tracking
+static volatile uint32_t handlerLatencyUs = 0;  // last handler call duration
+static volatile uint32_t handlerLatencyMax = 0;  // peak latency
+static volatile uint32_t handlerCallCount = 0;
+
+// ESP32 chip temperature
+static float chipTempC = 0;
+static bool tempSensorInited = false;
 
 // Build-flag fallbacks for STA WiFi credentials. Used as the first-boot
 // defaults; once the user saves new credentials they live in NVS.
@@ -100,8 +124,15 @@ static bool nvsInit()
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
     {
+        Serial.printf("NVS: corruption detected (err=%d), erasing and re-init\n", (int)err);
+        logRing.push("[NVS] Corruption detected, factory reset", millis());
         nvs_flash_erase();
         err = nvs_flash_init();
+    }
+    if (err != ESP_OK)
+    {
+        Serial.printf("NVS: init failed with err=%d\n", (int)err);
+        logRing.push("[NVS] Init failed, using defaults", millis());
     }
     return err == ESP_OK;
 }
@@ -171,6 +202,48 @@ static bool nvsWriteU8(const char *key, uint8_t value)
     return ok;
 }
 
+static int16_t nvsReadI16(const char *key, int16_t fallback)
+{
+    nvs_handle_t handle;
+    if (nvs_open(kNvsNamespace, NVS_READONLY, &handle) != ESP_OK)
+        return fallback;
+    int16_t val = fallback;
+    nvs_get_i16(handle, key, &val);
+    nvs_close(handle);
+    return val;
+}
+
+static bool nvsWriteI16(const char *key, int16_t value)
+{
+    nvs_handle_t handle;
+    if (nvs_open(kNvsNamespace, NVS_READWRITE, &handle) != ESP_OK)
+        return false;
+    bool ok = (nvs_set_i16(handle, key, value) == ESP_OK) && (nvs_commit(handle) == ESP_OK);
+    nvs_close(handle);
+    return ok;
+}
+
+static bool nvsWriteBlob(const char *key, const void *data, size_t len)
+{
+    nvs_handle_t handle;
+    if (nvs_open(kNvsNamespace, NVS_READWRITE, &handle) != ESP_OK)
+        return false;
+    bool ok = (nvs_set_blob(handle, key, data, len) == ESP_OK) && (nvs_commit(handle) == ESP_OK);
+    nvs_close(handle);
+    return ok;
+}
+
+static bool nvsReadBlob(const char *key, void *data, size_t maxLen, size_t *outLen)
+{
+    nvs_handle_t handle;
+    if (nvs_open(kNvsNamespace, NVS_READONLY, &handle) != ESP_OK)
+        return false;
+    *outLen = maxLen;
+    bool ok = (nvs_get_blob(handle, key, data, outLen) == ESP_OK);
+    nvs_close(handle);
+    return ok;
+}
+
 static void nvsReadString(const char *key, char *out, size_t outSize, const char *fallback)
 {
     if (outSize == 0)
@@ -234,6 +307,43 @@ static void nvsLoadAllSettings()
 
     nvsReadString(kNvsKeyWifiSsid, gStaSsid, sizeof(gStaSsid), kDefaultStaSsid);
     nvsReadString(kNvsKeyWifiPass, gStaPass, sizeof(gStaPass), kDefaultStaPass);
+
+    // Smart offset: restore enabled flag + rules blob
+    smartOffsetEnabled = nvsReadBool(kNvsKeySmartOffsetEn, false);
+    {
+        uint8_t ruleCount = nvsReadU8(kNvsKeySmartOffsetN, 0);
+        if (ruleCount > 0 && ruleCount <= kMaxSmartRules)
+        {
+            size_t blobLen = 0;
+            SmartOffsetRule rules[kMaxSmartRules];
+            if (nvsReadBlob(kNvsKeySmartOffsetR, rules, sizeof(rules), &blobLen) &&
+                blobLen == ruleCount * sizeof(SmartOffsetRule))
+            {
+                for (int i = 0; i < ruleCount; i++)
+                    smartOffsetRules.rules[i] = rules[i];
+                smartOffsetRules.count = ruleCount;
+                Serial.printf("NVS: smart offset rules loaded (%d rules)\n", ruleCount);
+            }
+        }
+    }
+
+    // Manual speed offset: restore mode + value
+    speedOffsetManualMode = nvsReadBool(kNvsKeyManualOffMode, false);
+    {
+        int16_t v = nvsReadI16(kNvsKeyManualOffVal, 0);
+        if (v >= 0 && v <= 200)
+            manualSpeedOffset = v;
+    }
+
+    // Chip temperature sensor init
+#ifdef HAS_TEMP_SENSOR
+    temp_sensor_config_t tempConf = TSENS_CONFIG_DEFAULT();
+    if (temp_sensor_set_config(tempConf) == ESP_OK && temp_sensor_start() == ESP_OK)
+    {
+        tempSensorInited = true;
+        Serial.println("NVS: chip temp sensor initialized");
+    }
+#endif
 
     Serial.printf("NVS loaded: hw=%d cn=%d auto=%d ssid=\"%s\"\n",
                   (int)hw, (int)(bool)chinaModeRuntime, (int)(bool)profileModeAutoRuntime, gStaSsid);
@@ -522,9 +632,28 @@ static esp_err_t statusHandler(httpd_req_t *req)
               (unsigned long)(appHandler ? (uint32_t)appHandler->framesSent : 0));
 
     // CAN Monitor status
-    JS_APPEND("\"monitor\":{\"inited\":%s,\"enabled\":%s,\"entries\":%lu,\"capacity\":%lu}}",
+    JS_APPEND("\"monitor\":{\"inited\":%s,\"enabled\":%s,\"entries\":%lu,\"capacity\":%lu},",
               JS_BOOL(canMonitor.isInited()), JS_BOOL(canMonitor.isEnabled()),
               (unsigned long)canMonitor.entryCount(), (unsigned long)canMonitor.capacity());
+
+    // Chip temperature
+#ifdef HAS_TEMP_SENSOR
+    if (tempSensorInited)
+    {
+        temp_sensor_read_celsius(&chipTempC);
+    }
+#endif
+    JS_APPEND("\"chip_temp_c\":%.1f,", chipTempC);
+
+    // Handler latency
+    JS_APPEND("\"handler\":{\"latency_us\":%lu,\"latency_max_us\":%lu,\"calls\":%lu},",
+              (unsigned long)handlerLatencyUs, (unsigned long)handlerLatencyMax,
+              (unsigned long)handlerCallCount);
+
+    // Free heap
+    JS_APPEND("\"free_heap\":%lu,\"free_psram\":%lu}",
+              (unsigned long)ESP.getFreeHeap(),
+              (unsigned long)ESP.getFreePsram());
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, buf, pos);
@@ -822,10 +951,12 @@ static esp_err_t speedOffsetHandler(httpd_req_t *req)
         speedOffsetManualMode = true;
         if (appHandler)
             appHandler->speedOffset = v;
+        nvsWriteI16(kNvsKeyManualOffVal, (int16_t)v);
     }
     if (cJSON_IsBool(manItem))
     {
         speedOffsetManualMode = cJSON_IsTrue(manItem);
+        nvsWriteBool(kNvsKeyManualOffMode, (bool)speedOffsetManualMode);
     }
     cJSON_Delete(json);
     httpd_resp_set_type(req, "application/json");
@@ -856,7 +987,7 @@ static esp_err_t smartOffsetHandler(httpd_req_t *req)
     {
         bool en = cJSON_IsTrue(enItem);
         smartOffsetEnabled = en;
-        // Don't touch speedOffsetManualMode here — /api/speed-offset handles it
+        nvsWriteBool(kNvsKeySmartOffsetEn, en);
     }
 
     // Update rules
@@ -877,6 +1008,9 @@ static esp_err_t smartOffsetHandler(httpd_req_t *req)
             }
         }
         smartOffsetRules.count = n;
+        // Persist rules to NVS
+        nvsWriteU8(kNvsKeySmartOffsetN, (uint8_t)n);
+        nvsWriteBlob(kNvsKeySmartOffsetR, smartOffsetRules.rules, n * sizeof(SmartOffsetRule));
     }
 
     cJSON_Delete(json);
@@ -1020,6 +1154,16 @@ static esp_err_t otaHandler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
+    // Check for MD5 header for integrity verification
+    char md5Header[33] = {0};
+    bool hasMd5 = false;
+    if (httpd_req_get_hdr_value_str(req, "X-Firmware-MD5", md5Header, sizeof(md5Header)) == ESP_OK && md5Header[0])
+    {
+        hasMd5 = true;
+        Update.setMD5(md5Header);
+        Serial.printf("OTA: MD5 verification enabled: %s\n", md5Header);
+    }
+
     if (!Update.begin(req->content_len))
     {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, Update.errorString());
@@ -1062,11 +1206,15 @@ static esp_err_t otaHandler(httpd_req_t *req)
 
     if (!Update.end(true))
     {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, Update.errorString());
+        char errMsg[128];
+        snprintf(errMsg, sizeof(errMsg), "%s%s", 
+                 hasMd5 ? "MD5 mismatch or " : "", Update.errorString());
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, errMsg);
         return ESP_FAIL;
     }
 
     Serial.println("Web: OTA upload complete, restarting");
+    logRing.push("[OTA] Firmware verified and written, rebooting", millis());
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, "{\"ok\":true,\"restarting\":true}", HTTPD_RESP_USE_STRLEN);
     xTaskCreatePinnedToCore(restartTask, "reboot", 2048, NULL, 1, NULL, 0);
@@ -1573,7 +1721,7 @@ static void webServerInit()
     // HTTP server on Core 0
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.core_id = 0;
-    config.max_uri_handlers = 36;
+    config.max_uri_handlers = 40;
     config.lru_purge_enable = true;
     config.stack_size = 8192;
 

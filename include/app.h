@@ -201,7 +201,16 @@ static void appLoop()
             (handlerFilterMask[frame.id >> 5] & (1u << (frame.id & 31))))
         {
             appHandler->frameCount++;
+#if defined(DRIVER_TWAI) && !defined(NATIVE_BUILD)
+            uint32_t t0 = (uint32_t)esp_timer_get_time();
+#endif
             appHandler->handleMessage(frame, *appDriver);
+#if defined(DRIVER_TWAI) && !defined(NATIVE_BUILD)
+            uint32_t dt = (uint32_t)esp_timer_get_time() - t0;
+            handlerLatencyUs = dt;
+            if (dt > handlerLatencyMax) handlerLatencyMax = dt;
+            handlerCallCount++;
+#endif
         }
     }
     digitalWrite(PIN_LED, HIGH);

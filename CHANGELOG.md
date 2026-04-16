@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2025-07-23
+
+### Added
+
+- **NVS Persistence**: Smart offset rules and manual speed offset are now saved to NVS flash and restored on reboot
+- **Real-time Chart**: Live speed/SOC/power Canvas chart on Dashboard (120-point ring buffer)
+- **CAN Frame Viewer**: Interactive CAN frame table with hex/decimal ID filtering and frame statistics (count, Hz)
+- **System Info Panel**: Chip temperature, handler latency (avg/max), free heap and PSRAM displayed on System page
+- **Handler Latency Tracking**: Microsecond-precision timing of CAN message handler execution
+- **ESP32 Chip Temperature**: Internal temperature sensor monitoring via ESP-IDF driver
+- **OTA MD5 Verification**: Firmware upload integrity check using Web Crypto API (client) + Arduino Update.setMD5 (server)
+- **NVS Corruption Recovery**: Enhanced NVS init with erase-on-corruption fallback and logging to ring buffer
+
 ## [1.5.1] - 2026-04-15
 
 ### Added

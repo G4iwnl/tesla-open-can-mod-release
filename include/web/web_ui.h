@@ -243,6 +243,24 @@ body{
 }
 .follow-bar.active{background:var(--blue)}
 
+/* ── Chart ─────────────────────────────────────── */
+.chart-wrap{position:relative;width:100%;height:160px;margin-top:8px}
+.chart-wrap canvas{width:100%;height:100%;border-radius:8px;background:rgba(0,0,0,.15)}
+.light .chart-wrap canvas{background:rgba(0,0,0,.03)}
+.chart-legend{display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11px;font-weight:600;color:var(--text2)}
+.chart-legend .cl-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+
+/* ── CAN frame viewer ──────────────────────────── */
+.can-table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.can-table th{text-align:left;color:var(--text2);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.can-table td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"SF Mono",Menlo,monospace;white-space:nowrap}
+.light .can-table td{border-bottom:1px solid rgba(0,0,0,.04)}
+.can-table tr:hover td{background:rgba(52,120,246,.06)}
+.can-filter{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.can-filter input{background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;font-family:inherit;flex:1;max-width:240px}
+.light .can-filter input{background:rgba(0,0,0,.04)}
+.can-scroll{max-height:320px;overflow-y:auto;scrollbar-width:thin}
+
 /* ── Speed limits compact row ──────────────────── */
 .sl-row{
   display:flex;gap:10px;flex-wrap:wrap;align-items:center;
@@ -685,6 +703,32 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
         </div>
       </div>
 
+      <!-- ═══ Card 1c: 实时曲线 ═══ -->
+      <div class="card span-full">
+        <div class="card-title" id="iCardChart">实时曲线</div>
+        <div class="chart-wrap"><canvas id="chartCanvas"></canvas></div>
+        <div class="chart-legend">
+          <span><span class="cl-dot" style="background:#3478f6"></span><span id="iChartSpeed">车速</span></span>
+          <span><span class="cl-dot" style="background:#30d158"></span><span id="iChartSoc">电量</span></span>
+          <span><span class="cl-dot" style="background:#ff9500"></span><span id="iChartPower">功率</span></span>
+        </div>
+      </div>
+
+      <!-- ═══ Card 1d: CAN 帧查看器 ═══ -->
+      <div class="card span-full">
+        <div class="card-title" id="iCardCanView">CAN 帧查看器</div>
+        <div class="can-filter">
+          <input type="text" id="canFilterInput" placeholder="Filter ID (e.g. 0x132 or 306)">
+          <span style="font-size:12px;color:var(--text3)" id="canIdCount">0 IDs</span>
+        </div>
+        <div class="can-scroll" id="canTableWrap">
+          <table class="can-table">
+            <thead><tr><th>ID</th><th>DEC</th><th>DLC</th><th>DATA</th><th>COUNT</th><th>Hz</th></tr></thead>
+            <tbody id="canTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- ═══ Card 2: 限速与速度偏移比 — copied from Card 3 structure ═══ -->
       <div class="card span-full" id="offsetCard" style="display:none">
         <div class="card-title" id="iCardSLimits">限速与速度偏移比</div>
@@ -887,6 +931,33 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
   <div class="page" id="pageSys">
     <div class="grid">
 
+      <!-- System Info -->
+      <div class="card span-full">
+        <div class="card-title" id="iCardSysInfo">系统信息</div>
+        <div class="mode-row" style="grid-template-columns:repeat(5,1fr)">
+          <div class="ed-cell">
+            <div class="ed-val" id="sysChipTemp">--</div>
+            <div class="ed-lbl" id="iSysChipTemp">芯片温度</div>
+          </div>
+          <div class="ed-cell">
+            <div class="ed-val" id="sysLatency">--</div>
+            <div class="ed-lbl" id="iSysLatency">处理延迟</div>
+          </div>
+          <div class="ed-cell">
+            <div class="ed-val" id="sysLatencyMax">--</div>
+            <div class="ed-lbl" id="iSysLatencyMax">最大延迟</div>
+          </div>
+          <div class="ed-cell">
+            <div class="ed-val" id="sysFreeHeap">--</div>
+            <div class="ed-lbl" id="iSysFreeHeap">可用内存</div>
+          </div>
+          <div class="ed-cell">
+            <div class="ed-val" id="sysFreePsram">--</div>
+            <div class="ed-lbl" id="iSysFreePsram">PSRAM</div>
+          </div>
+        </div>
+      </div>
+
       <!-- WiFi -->
       <div class="card">
         <div class="card-title" id="iCardWifi">WiFi 设置</div>
@@ -1047,7 +1118,10 @@ zh:{
   cardBat:'电池状态',batSoc:'电量',batVolt:'电压 (V)',batCurr:'电流 (A)',batTMin:'最低温度',batTMax:'最高温度',
   otaPause:'车辆 OTA 进行中，CAN 修改已暂停',
   phElapsed:'已运行',phTempMin:'电池最低温',phTempMax:'电池最高温',phSoc:'电量',phAutoStopLbl:'自动停止温度',phMaxDurLbl:'最长时间',
-  cardDrive:'行车数据记录',lblDriveRec:'记录行车数据',metaDriveRec:'记录 CAN 信号快照至内存',driveDownload:'下载 CSV',driveClear:'清除',driveEmpty:'无数据',driveRows:'条记录'
+  cardDrive:'行车数据记录',lblDriveRec:'记录行车数据',metaDriveRec:'记录 CAN 信号快照至内存',driveDownload:'下载 CSV',driveClear:'清除',driveEmpty:'无数据',driveRows:'条记录',
+  cardChart:'实时曲线',chartSpeed:'车速',chartSoc:'电量',chartPower:'功率',
+  cardCanView:'CAN 帧查看器',
+  cardSysInfo:'系统信息',sysChipTemp:'芯片温度',sysLatency:'处理延迟',sysLatencyMax:'最大延迟',sysFreeHeap:'可用内存',sysFreePsram:'PSRAM'
 },
 en:{
   tabDash:'Dashboard',tabSet:'Settings',tabSys:'System',
@@ -1128,7 +1202,10 @@ en:{
   cardBat:'BATTERY STATUS',batSoc:'SOC',batVolt:'VOLTAGE (V)',batCurr:'CURRENT (A)',batTMin:'TEMP MIN',batTMax:'TEMP MAX',
   otaPause:'Vehicle OTA in progress — CAN mods paused',
   phElapsed:'ELAPSED',phTempMin:'BAT TEMP MIN',phTempMax:'BAT TEMP MAX',phSoc:'SOC',phAutoStopLbl:'Auto-stop temp',phMaxDurLbl:'Max duration',
-  cardDrive:'DRIVE DATA RECORDING',lblDriveRec:'Record Drive Data',metaDriveRec:'Snapshot CAN signals to memory',driveDownload:'Download CSV',driveClear:'Clear',driveEmpty:'No data',driveRows:'rows'
+  cardDrive:'DRIVE DATA RECORDING',lblDriveRec:'Record Drive Data',metaDriveRec:'Snapshot CAN signals to memory',driveDownload:'Download CSV',driveClear:'Clear',driveEmpty:'No data',driveRows:'rows',
+  cardChart:'LIVE CHART',chartSpeed:'Speed',chartSoc:'SOC',chartPower:'Power',
+  cardCanView:'CAN FRAME VIEWER',
+  cardSysInfo:'SYSTEM INFO',sysChipTemp:'CHIP TEMP',sysLatency:'LATENCY',sysLatencyMax:'MAX LATENCY',sysFreeHeap:'FREE HEAP',sysFreePsram:'PSRAM'
 }
 };
 
@@ -1460,6 +1537,14 @@ function updateDashboard(sig){
   if(otaBanner){
     otaBanner.style.display=(sig.otaInProgress&&sig.otaInProgress>0)?'block':'none';
   }
+
+  /* Chart: push speed / SOC / power (kW from V*A/1000) */
+  var chartSpeedVal=sig.vehicleSpeed_kph||0;
+  var chartSocVal=sig.bmsSoc_pct||0;
+  var chartPowerVal=0;
+  if(sig.bmsVoltage_V&&sig.bmsCurrent_A)chartPowerVal=Math.abs(sig.bmsVoltage_V*sig.bmsCurrent_A/1000);
+  pushChart(chartSpeedVal,chartSocVal,chartPowerVal);
+  drawChart();
 }
 
 var canLiveErrCount=0;
@@ -1470,6 +1555,7 @@ async function pollCanLive(){
     var d=await r.json();
     canLiveErrCount=0;
     if(d.signals)updateDashboard(d.signals);
+    if(d.frames)updateCanTable(d.frames);
   }catch(e){
     canLiveErrCount++;
   }
@@ -1617,6 +1703,15 @@ async function poll(){
       $('bsCanState').textContent=getCanStateText(d.can.state);
     }
 
+    /* System stats */
+    if(d.chip_temp_c!==undefined)$('sysChipTemp').textContent=d.chip_temp_c.toFixed(1)+'\u00b0C';
+    if(d.handler){
+      $('sysLatency').textContent=(d.handler.latency_us/1000).toFixed(1)+'ms';
+      $('sysLatencyMax').textContent=(d.handler.latency_max_us/1000).toFixed(1)+'ms';
+    }
+    if(d.free_heap!==undefined)$('sysFreeHeap').textContent=Math.round(d.free_heap/1024)+'KB';
+    if(d.free_psram!==undefined)$('sysFreePsram').textContent=Math.round(d.free_psram/1024)+'KB';
+
     /* Header */
     if(d.version)$('iVer').textContent='v'+d.version;
     if(d.sta_ip)$('iIp').textContent=d.sta_ip;
@@ -1718,8 +1813,10 @@ async function saveWifi(){
    ═══════════════════════════════════════════════════ */
 function onFile(inp){
   var fn=$('fileName');
-  if(inp.files[0]){fn.textContent=inp.files[0].name;$('otaBtn').disabled=false;}
-  else{fn.textContent=t('noFile');$('otaBtn').disabled=true;}
+  if(inp.files[0]){fn.textContent=inp.files[0].name;$('otaBtn').disabled=false;otaFileMd5='';
+    computeFileMd5(inp.files[0]).then(function(h){otaFileMd5=h;});
+  }
+  else{fn.textContent=t('noFile');$('otaBtn').disabled=true;otaFileMd5='';}
 }
 
 async function doOta(){
@@ -1732,6 +1829,7 @@ async function doOta(){
   var xhr=new XMLHttpRequest();
   xhr.open('POST','/api/ota');
   xhr.setRequestHeader('Content-Type','application/octet-stream');
+  if(otaFileMd5)xhr.setRequestHeader('X-Firmware-MD5',otaFileMd5);
   xhr.upload.onprogress=function(ev){
     if(ev.lengthComputable){var p=Math.round(ev.loaded/ev.total*100);bar.style.width=p+'%';msg.textContent=t('otaUploading')+p+'%';}
   };
@@ -1896,6 +1994,14 @@ function applyLang(){
   $('iLblDriveRec').textContent=t('lblDriveRec');$('iMetaDriveRec').textContent=t('metaDriveRec');
   $('iDriveDownload').textContent=t('driveDownload');$('iDriveClear').textContent=t('driveClear');
 
+  $('iCardChart').textContent=t('cardChart');
+  $('iChartSpeed').textContent=t('chartSpeed');$('iChartSoc').textContent=t('chartSoc');$('iChartPower').textContent=t('chartPower');
+  $('iCardCanView').textContent=t('cardCanView');
+  $('iCardSysInfo').textContent=t('cardSysInfo');
+  $('iSysChipTemp').textContent=t('sysChipTemp');$('iSysLatency').textContent=t('sysLatency');
+  $('iSysLatencyMax').textContent=t('sysLatencyMax');$('iSysFreeHeap').textContent=t('sysFreeHeap');
+  $('iSysFreePsram').textContent=t('sysFreePsram');
+
   if($('iBsCanState'))$('iBsCanState').textContent=t('bsCanState');
   if($('iBsUp'))$('iBsUp').textContent=t('bsUp');
   if($('iBsErr'))$('iBsErr').textContent=t('bsErr');
@@ -1920,6 +2026,85 @@ function applyTheme(){
   document.body.classList.toggle('light',isLight);
   var mc=document.querySelector('meta[name="theme-color"]');
   if(mc)mc.setAttribute('content',isLight?'#f2f2f7':'#000000');
+}
+
+/* ═══════════════════════════════════════════════════
+   Real-time Chart (Canvas 2D)
+   ═══════════════════════════════════════════════════ */
+var chartLen=120,chartSpd=[],chartSoc=[],chartPwr=[];
+function pushChart(spd,soc,pwr){
+  chartSpd.push(spd);chartSoc.push(soc);chartPwr.push(pwr);
+  if(chartSpd.length>chartLen){chartSpd.shift();chartSoc.shift();chartPwr.shift();}
+}
+function drawChart(){
+  var cv=$('chartCanvas');if(!cv||!cv.getContext)return;
+  var dpr=window.devicePixelRatio||1;
+  var w=cv.clientWidth,h=cv.clientHeight;
+  if(cv.width!==w*dpr||cv.height!==h*dpr){cv.width=w*dpr;cv.height=h*dpr;}
+  var ctx=cv.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  if(chartSpd.length<2)return;
+  var n=chartSpd.length,sx=w/(chartLen-1);
+  function drawLine(arr,maxV,color){
+    ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.lineJoin='round';
+    for(var i=0;i<n;i++){
+      var x=(chartLen-n+i)*sx;
+      var y=h-Math.min(arr[i]/maxV,1)*h*0.9-h*0.05;
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  drawLine(chartSpd,200,'#3478f6');
+  drawLine(chartSoc,100,'#30d158');
+  drawLine(chartPwr,100,'#ff9500');
+}
+
+/* ═══════════════════════════════════════════════════
+   CAN Frame Viewer
+   ═══════════════════════════════════════════════════ */
+var canFrames={},canFrameTs={};
+function updateCanTable(frames){
+  if(!frames||!frames.length)return;
+  var now=Date.now();
+  for(var i=0;i<frames.length;i++){
+    var f=frames[i];
+    var key=f.id;
+    if(!canFrames[key])canFrames[key]={id:f.id,dlc:f.dlc,data:f.data,count:0,hz:0,lastTs:now};
+    var cf=canFrames[key];
+    cf.dlc=f.dlc;cf.data=f.data;cf.count++;
+    if(cf.lastTs&&cf.lastTs<now){
+      var dt=(now-cf.lastTs)/1000;
+      cf.hz=dt>0?Math.round(1/dt):0;
+    }
+    cf.lastTs=now;
+  }
+  var filter=$('canFilterInput').value.trim().toLowerCase();
+  var keys=Object.keys(canFrames).sort(function(a,b){return parseInt(a)-parseInt(b)});
+  var shown=0,html='';
+  for(var k=0;k<keys.length;k++){
+    var fr=canFrames[keys[k]];
+    var hexId='0x'+fr.id.toString(16).toUpperCase().padStart(3,'0');
+    var decId=String(fr.id);
+    if(filter&&hexId.toLowerCase().indexOf(filter)===-1&&decId.indexOf(filter)===-1)continue;
+    shown++;
+    html+='<tr><td>'+hexId+'</td><td>'+decId+'</td><td>'+fr.dlc+'</td><td>'+fr.data+'</td><td>'+fr.count+'</td><td>'+fr.hz+'</td></tr>';
+  }
+  $('canTableBody').innerHTML=html;
+  $('canIdCount').textContent=shown+' / '+keys.length+' IDs';
+}
+
+/* ═══════════════════════════════════════════════════
+   OTA MD5 Hash (Web Crypto API)
+   ═══════════════════════════════════════════════════ */
+var otaFileMd5='';
+async function computeFileMd5(file){
+  try{
+    var buf=await file.arrayBuffer();
+    var hash=await crypto.subtle.digest('MD5',buf);
+    var arr=new Uint8Array(hash);
+    return Array.from(arr).map(function(b){return b.toString(16).padStart(2,'0')}).join('');
+  }catch(e){return '';}
 }
 
 /* ═══════════════════════════════════════════════════
