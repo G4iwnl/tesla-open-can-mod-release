@@ -149,8 +149,10 @@ struct HW3Handler : public CarManagerBase
             {
                 if (speedOffsetManualMode)
                     speedOffset = (int)manualSpeedOffset;
-                else
-                    speedOffset = std::max(std::min(((uint8_t)((frame.data[3] >> 1) & 0x3F) - 30) * 5, 100), 0);
+                else {
+                    int raw = (frame.data[3] >> 1) & 0x3F;
+                    speedOffset = std::max(std::min((raw - 30) * 5, 100), 0);
+                }
                 setBit(frame, 46, true);
                 setSpeedProfileV12V13(frame, speedProfile);
                 framesSent++;
@@ -343,6 +345,7 @@ struct HW4Handler : public CarManagerBase
                 speedProfile = 4; // Sloth
                 break;
             }
+            return;
         }
         if (frame.id == 1021)
         {
@@ -355,8 +358,10 @@ struct HW4Handler : public CarManagerBase
             {
                 if (speedOffsetManualMode)
                     speedOffset = (int)manualSpeedOffset;
-                else
-                    speedOffset = std::max(std::min(((uint8_t)((frame.data[3] >> 1) & 0x3F) - 30) * 5, 100), 0);
+                else {
+                    int raw = (frame.data[3] >> 1) & 0x3F;
+                    speedOffset = std::max(std::min((raw - 30) * 5, 100), 0);
+                }
                 setBit(frame, 46, true);
                 setBit(frame, 60, true);
                 if (emergencyVehicleDetectionRuntime)

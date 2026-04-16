@@ -1833,6 +1833,7 @@ async function doOta(){
   xhr.open('POST','/api/ota');
   xhr.setRequestHeader('Content-Type','application/octet-stream');
   if(otaFileMd5)xhr.setRequestHeader('X-Firmware-MD5',otaFileMd5);
+  xhr.setRequestHeader('X-OTA-Token','12345678');
   xhr.upload.onprogress=function(ev){
     if(ev.lengthComputable){var p=Math.round(ev.loaded/ev.total*100);bar.style.width=p+'%';msg.textContent=t('otaUploading')+p+'%';}
   };

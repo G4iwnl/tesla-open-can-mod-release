@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-04-17
+
+### Fixed
+
+- **Critical: Speed offset underflow** — `uint8_t` subtraction wrapped when raw value < 30, silently saturating offset to max (100). Now uses signed `int` arithmetic with proper clamping to `[0, 100]`
+- **Critical: CanLive sortById data corruption** — `idxMap_[]` was not rebuilt after sorting slots, causing subsequent `update()` calls to write to wrong slots. Now rebuilds lookup table after sort
+- **Critical: OTA endpoint unauthenticated** — `/api/ota` accepted firmware uploads from any WiFi client. Now requires `X-OTA-Token` header matching AP password
+- **High: Multi-core race conditions** — `CanMonitor::head_/count_` and `CanLive::slotCount_` were `volatile` (insufficient on ESP32 dual-core). Replaced with `std::atomic<>` via `Shared<>` wrapper
+- **High: statusHandler static buffer** — `static char buf[8192]` could be corrupted by concurrent HTTP requests. Replaced with per-request heap allocation
+- **High: HW4Handler missing return** — `frame.id == 1016` block fell through to `1021` block (no-op but logic error). Added explicit `return`
+- **High: DNS task resource leak** — `dnsTask()` had no exit condition and never closed its socket. Added stop flag with receive timeout and proper cleanup
+- **Medium: Preheat variables not thread-safe** — `volatile` preheat timing variables replaced with `Shared<>` (atomic)
+- **Medium: SmartOffsetRules race condition** — Web handler wrote rules element-by-element while CAN loop read concurrently. Now builds temporary copy then swaps
+- Fixed `kWatchIds` comment count (20 → 21)
+- Added `-DHW4` to `env:native` build flags for robustness
+- Added `monitor_speed = 115200` to base `env:esp32_twai`
+
 ## [1.6.1] - 2026-04-16
 
 ### Performance

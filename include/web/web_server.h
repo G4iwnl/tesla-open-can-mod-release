@@ -474,9 +474,13 @@ static esp_err_t statusHandler(httpd_req_t *req)
     bool preheat = (bool)preheatRuntime;
     int hwMode = (int)(uint8_t)hwModeRuntime;
 
-    // Build JSON with direct snprintf — single static buffer (HTTP server is single-threaded)
+    // Build JSON with direct snprintf — heap buffer (safe for concurrent requests)
     static constexpr size_t kBufSize = 8192;
-    static char buf[kBufSize];
+    char *buf = (char *)malloc(kBufSize);
+    if (!buf) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OOM");
+        return ESP_FAIL;
+    }
     size_t pos = 0;
 
 #define JS_APPEND(fmt, ...) \
@@ -652,6 +656,7 @@ static esp_err_t statusHandler(httpd_req_t *req)
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, buf, pos);
+    free(buf);
 
 #undef JS_APPEND
 #undef JS_BOOL
@@ -984,12 +989,13 @@ static esp_err_t smartOffsetHandler(httpd_req_t *req)
         nvsWriteBool(kNvsKeySmartOffsetEn, en);
     }
 
-    // Update rules
+    // Update rules — build in temporary copy, then swap atomically
     cJSON *rulesArr = cJSON_GetObjectItem(json, "rules");
     if (cJSON_IsArray(rulesArr))
     {
         int n = cJSON_GetArraySize(rulesArr);
         if (n > kMaxSmartRules) n = kMaxSmartRules;
+        SmartOffsetRule tmpRules[kMaxSmartRules] = {};
         for (int i = 0; i < n; i++)
         {
             cJSON *item = cJSON_GetArrayItem(rulesArr, i);
@@ -997,10 +1003,12 @@ static esp_err_t smartOffsetHandler(httpd_req_t *req)
             cJSON *op = cJSON_GetObjectItem(item, "offsetPct");
             if (cJSON_IsNumber(ms) && cJSON_IsNumber(op))
             {
-                smartOffsetRules.rules[i].maxSpeed = ms->valueint;
-                smartOffsetRules.rules[i].offsetPct = op->valueint;
+                tmpRules[i].maxSpeed = ms->valueint;
+                tmpRules[i].offsetPct = op->valueint;
             }
         }
+        // Copy rules first, then update count — CAN loop reads count first
+        memcpy(smartOffsetRules.rules, tmpRules, sizeof(tmpRules));
         smartOffsetRules.count = n;
         // Persist rules to NVS
         nvsWriteU8(kNvsKeySmartOffsetN, (uint8_t)n);
@@ -1142,6 +1150,16 @@ static esp_err_t enablePrintHandler(httpd_req_t *req)
 
 static esp_err_t otaHandler(httpd_req_t *req)
 {
+    // --- Authentication: require X-OTA-Token header matching AP password ---
+    char tokenBuf[64] = {0};
+    if (httpd_req_get_hdr_value_str(req, "X-OTA-Token", tokenBuf, sizeof(tokenBuf)) != ESP_OK
+        || strcmp(tokenBuf, AP_PASS) != 0)
+    {
+        httpd_resp_set_status(req, "403 Forbidden");
+        httpd_resp_send(req, "Invalid or missing OTA token", HTTPD_RESP_USE_STRLEN);
+        return ESP_FAIL;
+    }
+
     if (req->content_len <= 0)
     {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing firmware payload");
@@ -1226,6 +1244,8 @@ static esp_err_t captiveRedirectHandler(httpd_req_t *req)
 
 // --- DNS captive portal task ---
 
+static Shared<bool> dnsTaskStop{false};
+
 static void dnsTask(void *param)
 {
     int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -1253,7 +1273,11 @@ static void dnsTask(void *param)
     struct sockaddr_in client;
     socklen_t clientLen;
 
-    while (true)
+    // Set receive timeout so we can check the stop flag periodically
+    struct timeval tv = {.tv_sec = 2, .tv_usec = 0};
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+    while (!dnsTaskStop)
     {
         clientLen = sizeof(client);
         int len = recvfrom(sock, buf, sizeof(buf), 0,
@@ -1289,6 +1313,8 @@ static void dnsTask(void *param)
         sendto(sock, buf, pos, 0,
                (struct sockaddr *)&client, clientLen);
     }
+    close(sock);
+    vTaskDelete(NULL);
 }
 
 // --- CAN Monitor log API ---

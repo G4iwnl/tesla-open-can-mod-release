@@ -92,7 +92,7 @@ public:
     bool isEnabled() const { return enabled_; }
     size_t slotCount() const { return slotCount_; }
 
-    // Sort slots by ID for consistent output
+    // Sort slots by ID for consistent output — rebuilds idxMap_ afterwards
     void sortById()
     {
         for (size_t i = 1; i < slotCount_; i++)
@@ -105,6 +105,13 @@ public:
                 j--;
             }
             slots_[j] = tmp;
+        }
+        // Rebuild O(1) lookup table after re-ordering
+        memset(idxMap_, 0xFF, sizeof(idxMap_));
+        for (size_t i = 0; i < slotCount_; i++)
+        {
+            if (slots_[i].id < kMapSize)
+                idxMap_[slots_[i].id] = static_cast<uint8_t>(i);
         }
     }
 
@@ -119,7 +126,7 @@ public:
 
 private:
     CanIdEntry slots_[kMaxIds] = {};
-    volatile size_t slotCount_ = 0;
+    Shared<size_t> slotCount_{0};
     Shared<bool> enabled_{false};
     uint8_t idxMap_[kMapSize];  // CAN ID → slot index, 0xFF = unmapped
 

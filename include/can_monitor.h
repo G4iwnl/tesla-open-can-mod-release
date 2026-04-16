@@ -27,7 +27,7 @@ struct __attribute__((packed)) CanLogEntry
 class CanMonitor
 {
 public:
-    // 20 FSD-related CAN IDs to capture
+    // 21 FSD-related CAN IDs to capture
     static constexpr uint16_t kWatchIds[] = {
         0x045, //  69  STW_ACTN_RQ (Legacy stalk)
         0x082, // 130  UI_tripPlanning (precondition)
@@ -166,8 +166,8 @@ public:
 private:
     CanLogEntry *buffer_ = nullptr;
     uint32_t capacity_ = 0;
-    volatile uint32_t head_ = 0;
-    volatile uint32_t count_ = 0;
+    Shared<uint32_t> head_{0};
+    Shared<uint32_t> count_{0};
     bool inited_ = false;
     Shared<bool> enabled_{false};
     uint32_t watchMask_[32] = {};  // bitmask for O(1) ID lookup (IDs 0-1023)
