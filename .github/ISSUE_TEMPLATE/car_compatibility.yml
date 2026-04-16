@@ -1,0 +1,98 @@
+name: Car Compatibility Report
+description: Report whether the firmware works on your vehicle
+labels: ["compatibility"]
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Vehicle Model
+      placeholder: "e.g. Model 3, Model Y, Model S"
+    validations:
+      required: true
+
+  - type: input
+    id: year
+    attributes:
+      label: Model Year
+      placeholder: "e.g. 2024"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: hw
+    attributes:
+      label: Autopilot Hardware
+      options:
+        - HW3
+        - HW4
+        - HW1 / HW2 (Legacy)
+        - Unknown
+    validations:
+      required: true
+
+  - type: input
+    id: tesla_fw
+    attributes:
+      label: Tesla Firmware Version
+      placeholder: "e.g. 2026.2.9.3"
+    validations:
+      required: true
+
+  - type: input
+    id: region
+    attributes:
+      label: Region
+      placeholder: "e.g. EU, CN, KR, US, TW"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: board
+    attributes:
+      label: Board Used
+      options:
+        - Waveshare ESP32-S3-RS485-CAN
+        - ESP32 DevKit + SN65HVD230
+        - M5Stack Atomic CAN Base
+        - M5Stack AtomS3 + CAN Base
+        - LilyGo T-CAN485
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: fw_version
+    attributes:
+      label: Firmware Version
+      placeholder: "e.g. 1.6.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Detection Mode
+      options:
+        - Auto Detect
+        - Force HW3
+        - Force HW4
+        - Legacy
+    validations:
+      required: true
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Result
+      options:
+        - Working
+        - Partially working (describe below)
+        - Not working
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Any additional details — which features work/don't work, FSD status, connection point (OBD-II / X179), etc.
