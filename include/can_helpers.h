@@ -102,7 +102,7 @@ inline Shared<unsigned long> preheatStartMs{0};
 inline Shared<int8_t> preheatAutoStopTemp{10};               // °C — auto-stop when bmsTempMin >= this
 inline Shared<unsigned long> preheatMaxDurationMs{30UL * 60 * 1000}; // 30 min default
 
-// Speed offset manual override (HW3 only).
+// Speed offset manual override (HW3 & HW4).
 // When true, handler uses manualSpeedOffset instead of the CAN-read value.
 inline Shared<bool> speedOffsetManualMode{false};
 inline Shared<int> manualSpeedOffset{0}; // CAN value (pct * 4)
@@ -123,7 +123,7 @@ struct SmartOffsetRules {
         {41, 50},   // ≤ 40 kph → 50%
         {51, 30},   // 50 kph → 30%
         {61, 20},   // 60 kph → 20%
-        {999, 10},  // 80-120 kph → 10%
+        {999, 5},   // 80-120 kph → 5%
     };
     int count = 4;
 

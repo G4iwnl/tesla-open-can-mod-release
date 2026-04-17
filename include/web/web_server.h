@@ -941,22 +941,19 @@ static esp_err_t speedOffsetHandler(httpd_req_t *req)
     }
     cJSON *valItem = cJSON_GetObjectItem(json, "value");
     cJSON *manItem = cJSON_GetObjectItem(json, "manual");
+    bool manualMode = cJSON_IsBool(manItem) ? cJSON_IsTrue(manItem) : true;
     if (cJSON_IsNumber(valItem))
     {
         int v = valItem->valueint;
         if (v < 0) v = 0;
         if (v > 200) v = 200; // max 50% (50*4=200)
         manualSpeedOffset = v;
-        speedOffsetManualMode = true;
         if (appHandler)
             appHandler->speedOffset = v;
         nvsWriteI16(kNvsKeyManualOffVal, (int16_t)v);
     }
-    if (cJSON_IsBool(manItem))
-    {
-        speedOffsetManualMode = cJSON_IsTrue(manItem);
-        nvsWriteBool(kNvsKeyManualOffMode, (bool)speedOffsetManualMode);
-    }
+    speedOffsetManualMode = manualMode;
+    nvsWriteBool(kNvsKeyManualOffMode, manualMode);
     cJSON_Delete(json);
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, "{\"ok\":true}", HTTPD_RESP_USE_STRLEN);
@@ -1003,11 +1000,19 @@ static esp_err_t smartOffsetHandler(httpd_req_t *req)
             cJSON *op = cJSON_GetObjectItem(item, "offsetPct");
             if (cJSON_IsNumber(ms) && cJSON_IsNumber(op))
             {
-                tmpRules[i].maxSpeed = ms->valueint;
-                tmpRules[i].offsetPct = op->valueint;
+                int msv = ms->valueint;
+                int opv = op->valueint;
+                if (msv < 1) msv = 1;
+                if (msv > 999) msv = 999;
+                if (opv < 0) opv = 0;
+                if (opv > 50) opv = 50;
+                tmpRules[i].maxSpeed = msv;
+                tmpRules[i].offsetPct = opv;
             }
         }
-        // Copy rules first, then update count — CAN loop reads count first
+        // Swap count to 0 first so CAN loop sees no rules during update,
+        // then copy rules, then set the real count.
+        smartOffsetRules.count = 0;
         memcpy(smartOffsetRules.rules, tmpRules, sizeof(tmpRules));
         smartOffsetRules.count = n;
         // Persist rules to NVS
