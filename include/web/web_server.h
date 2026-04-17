@@ -1597,26 +1597,7 @@ static esp_err_t canLiveHandler(httpd_req_t *req)
     CL_APPEND("\"lightState\":%u,", sig.lightState);
     CL_APPEND("\"bmsVoltage_V\":%.2f,\"bmsCurrent_A\":%.1f,\"bmsSoc_pct\":%.1f,\"bmsTempMin_C\":%d,\"bmsTempMax_C\":%d,",
               sig.bmsVoltage, sig.bmsCurrent, sig.bmsSoc, (int)sig.bmsTempMin, (int)sig.bmsTempMax);
-    CL_APPEND("\"otaInProgress\":%u},", sig.otaInProgress);
-
-    // Raw frame table — snprintf directly
-    unsigned long nowMs = millis();
-    float uptimeSec = nowMs > 1000 ? (nowMs / 1000.0f) : 1.0f;
-    CL_APPEND("\"frames\":[");
-    for (size_t i = 0; i < canLive.slotCount(); i++)
-    {
-        const auto &s = canLive.slot(i);
-        if (i > 0) CL_APPEND(",");
-        char dataHex[24];
-        int dp = 0;
-        for (int b = 0; b < s.dlc && b < 8; b++)
-            dp += snprintf(dataHex + dp, sizeof(dataHex) - dp, "%02X", s.data[b]);
-        dataHex[dp] = '\0';
-        float hz = s.count > 1 ? (float)s.count / uptimeSec : 0;
-        CL_APPEND("{\"id\":%u,\"dlc\":%u,\"data\":\"%s\",\"count\":%lu,\"hz\":%.1f}",
-                  (unsigned)s.id, (unsigned)s.dlc, dataHex, (unsigned long)s.count, hz);
-    }
-    CL_APPEND("]}");
+    CL_APPEND("\"otaInProgress\":%u}}", sig.otaInProgress);
 
 #undef CL_APPEND
 

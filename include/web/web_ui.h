@@ -250,16 +250,6 @@ body{
 .chart-legend{display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11px;font-weight:600;color:var(--text2)}
 .chart-legend .cl-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
 
-/* ── CAN frame viewer ──────────────────────────── */
-.can-table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
-.can-table th{text-align:left;color:var(--text2);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
-.can-table td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.03);font-family:"SF Mono",Menlo,monospace;white-space:nowrap}
-.light .can-table td{border-bottom:1px solid rgba(0,0,0,.04)}
-.can-table tr:hover td{background:rgba(52,120,246,.06)}
-.can-filter{display:flex;gap:8px;margin-bottom:10px;align-items:center}
-.can-filter input{background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;font-family:inherit;flex:1;max-width:240px}
-.light .can-filter input{background:rgba(0,0,0,.04)}
-.can-scroll{max-height:320px;overflow-y:auto;scrollbar-width:thin}
 
 /* ── Speed limits compact row ──────────────────── */
 .sl-row{
@@ -714,20 +704,6 @@ input:disabled+.toggle-track{opacity:.35;cursor:not-allowed}
         </div>
       </div>
 
-      <!-- ═══ Card 1d: CAN 帧查看器 ═══ -->
-      <div class="card span-full">
-        <div class="card-title" id="iCardCanView">CAN 帧查看器</div>
-        <div class="can-filter">
-          <input type="text" id="canFilterInput" placeholder="Filter ID (e.g. 0x132 or 306)">
-          <span style="font-size:12px;color:var(--text3)" id="canIdCount">0 IDs</span>
-        </div>
-        <div class="can-scroll" id="canTableWrap">
-          <table class="can-table">
-            <thead><tr><th>ID</th><th>DEC</th><th>DLC</th><th>DATA</th><th>COUNT</th><th>Hz</th></tr></thead>
-            <tbody id="canTableBody"></tbody>
-          </table>
-        </div>
-      </div>
 
       <!-- ═══ Card 2: 限速与速度偏移比 — copied from Card 3 structure ═══ -->
       <div class="card span-full" id="offsetCard" style="display:none">
@@ -1120,7 +1096,6 @@ zh:{
   phElapsed:'已运行',phTempMin:'电池最低温',phTempMax:'电池最高温',phSoc:'电量',phAutoStopLbl:'自动停止温度',phMaxDurLbl:'最长时间',
   cardDrive:'行车数据记录',lblDriveRec:'记录行车数据',metaDriveRec:'记录 CAN 信号快照至内存',driveDownload:'下载 CSV',driveClear:'清除',driveEmpty:'无数据',driveRows:'条记录',
   cardChart:'实时曲线',chartSpeed:'车速',chartSoc:'电量',chartPower:'功率',
-  cardCanView:'CAN 帧查看器',
   cardSysInfo:'系统信息',sysChipTemp:'芯片温度',sysLatency:'处理延迟',sysLatencyMax:'最大延迟',sysFreeHeap:'可用内存',sysFreePsram:'PSRAM'
 },
 en:{
@@ -1204,7 +1179,6 @@ en:{
   phElapsed:'ELAPSED',phTempMin:'BAT TEMP MIN',phTempMax:'BAT TEMP MAX',phSoc:'SOC',phAutoStopLbl:'Auto-stop temp',phMaxDurLbl:'Max duration',
   cardDrive:'DRIVE DATA RECORDING',lblDriveRec:'Record Drive Data',metaDriveRec:'Snapshot CAN signals to memory',driveDownload:'Download CSV',driveClear:'Clear',driveEmpty:'No data',driveRows:'rows',
   cardChart:'LIVE CHART',chartSpeed:'Speed',chartSoc:'SOC',chartPower:'Power',
-  cardCanView:'CAN FRAME VIEWER',
   cardSysInfo:'SYSTEM INFO',sysChipTemp:'CHIP TEMP',sysLatency:'LATENCY',sysLatencyMax:'MAX LATENCY',sysFreeHeap:'FREE HEAP',sysFreePsram:'PSRAM'
 }
 };
@@ -1556,7 +1530,6 @@ async function pollCanLive(){
     var d=await r.json();
     canLiveErrCount=0;
     if(d.signals)updateDashboard(d.signals);
-    if(d.frames)updateCanTable(d.frames);
   }catch(e){
     canLiveErrCount++;
   }
@@ -2000,7 +1973,6 @@ function applyLang(){
 
   $('iCardChart').textContent=t('cardChart');
   $('iChartSpeed').textContent=t('chartSpeed');$('iChartSoc').textContent=t('chartSoc');$('iChartPower').textContent=t('chartPower');
-  $('iCardCanView').textContent=t('cardCanView');
   $('iCardSysInfo').textContent=t('cardSysInfo');
   $('iSysChipTemp').textContent=t('sysChipTemp');$('iSysLatency').textContent=t('sysLatency');
   $('iSysLatencyMax').textContent=t('sysLatencyMax');$('iSysFreeHeap').textContent=t('sysFreeHeap');
@@ -2071,40 +2043,6 @@ function drawChart(){
   drawLine(chartPwr,100,'#ff9500');
 }
 
-/* ═══════════════════════════════════════════════════
-   CAN Frame Viewer (throttled to 2fps max)
-   ═══════════════════════════════════════════════════ */
-var canFrames={},_canDirty=false,_canRafPending=false;
-function updateCanTable(frames){
-  if(!frames||!frames.length)return;
-  var now=Date.now();
-  for(var i=0;i<frames.length;i++){
-    var f=frames[i];
-    var key=f.id;
-    if(!canFrames[key])canFrames[key]={id:f.id,dlc:f.dlc,data:f.data,count:f.count,hz:f.hz};
-    else{var cf=canFrames[key];cf.dlc=f.dlc;cf.data=f.data;cf.count=f.count;cf.hz=f.hz;}
-  }
-  _canDirty=true;
-  if(!_canRafPending){_canRafPending=true;requestAnimationFrame(renderCanTable);}
-}
-function renderCanTable(){
-  _canRafPending=false;
-  if(!_canDirty)return;
-  _canDirty=false;
-  var filter=$('canFilterInput').value.trim().toLowerCase();
-  var keys=Object.keys(canFrames).sort(function(a,b){return a-b});
-  var shown=0,parts=[];
-  for(var k=0;k<keys.length;k++){
-    var fr=canFrames[keys[k]];
-    var hexId='0x'+fr.id.toString(16).toUpperCase().padStart(3,'0');
-    var decId=String(fr.id);
-    if(filter&&hexId.toLowerCase().indexOf(filter)===-1&&decId.indexOf(filter)===-1)continue;
-    shown++;
-    parts.push('<tr><td>'+hexId+'</td><td>'+decId+'</td><td>'+fr.dlc+'</td><td>'+fr.data+'</td><td>'+fr.count+'</td><td>'+fr.hz.toFixed(1)+'</td></tr>');
-  }
-  $('canTableBody').innerHTML=parts.join('');
-  $('canIdCount').textContent=shown+' / '+keys.length+' IDs';
-}
 
 /* ═══════════════════════════════════════════════════
    OTA MD5 Hash (Web Crypto API)
