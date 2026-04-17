@@ -47,7 +47,6 @@ A built-in WiFi hotspot (AP mode, SSID `TeslaCAN`) serves a full-featured single
 - Real-time signal monitoring: throttle, speed limits, hands-on level, follow distance, gear
 - Battery status: SoC%, voltage, current, temperature min/max
 - Live speed/SoC/power chart (Canvas, 120-point ring buffer)
-- CAN frame viewer: filterable live table with hex data, frame count, and frequency (Hz)
 - Speed profile selector and offset controls
 
 **Settings Tab**
@@ -219,7 +218,7 @@ The web server exposes 29 HTTP endpoints. All feature toggles accept `{"enabled"
 |--------|------|-------------|
 | GET | `/` | Web UI (single-page HTML) |
 | GET | `/api/status` | Full system status JSON (features, CAN stats, logs) |
-| GET | `/api/can-live` | Live CAN signals + frame table |
+| GET | `/api/can-live` | Live CAN signals |
 | GET | `/api/smart-offset` | Smart offset rules and current percentage |
 | GET | `/api/preheat/status` | Preheat state (active, temps, elapsed) |
 | GET | `/api/can-log/status` | CAN monitor buffer status |

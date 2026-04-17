@@ -32,7 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **statusHandler**: Static 8KB buffer eliminates per-call heap allocation
 - **decodeSignals**: Deduplicated 3→1 calls per app loop iteration (OTA check + smart offset + preheat share one decode pass)
 - **Canvas chart**: requestAnimationFrame throttling, skip redraw when Dashboard tab not visible
-- **CAN frame table**: requestAnimationFrame-batched DOM updates instead of inline innerHTML per poll
 - **DOM queries**: Cached querySelectorAll results for handsDots, followBars, modeCards, offsetBtns (eliminate repeated DOM scans)
 - **Poll interval**: can-live reduced from 750ms to 1000ms (33% fewer network requests)
 - **sortById() removed**: Eliminated O(n²) insertion sort on every can-live poll (slots already O(1) via idxMap)
@@ -43,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **NVS Persistence**: Smart offset rules and manual speed offset are now saved to NVS flash and restored on reboot
 - **Real-time Chart**: Live speed/SOC/power Canvas chart on Dashboard (120-point ring buffer)
-- **CAN Frame Viewer**: Interactive CAN frame table with hex/decimal ID filtering and frame statistics (count, Hz)
 - **System Info Panel**: Chip temperature, handler latency (avg/max), free heap and PSRAM displayed on System page
 - **Handler Latency Tracking**: Microsecond-precision timing of CAN message handler execution
 - **ESP32 Chip Temperature**: Internal temperature sensor monitoring via ESP-IDF driver
