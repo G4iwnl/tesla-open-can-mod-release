@@ -120,7 +120,7 @@ inline constexpr int kMaxSmartRules = 8;
 
 struct SmartOffsetRules {
     SmartOffsetRule rules[kMaxSmartRules] = {
-        {41, 50},   // ≤ 40 kph → 50%
+        {41, 40},   // ≤ 40 kph → 40%
         {51, 30},   // 41-50 kph → 30%
         {61, 20},   // 51-60 kph → 20%
         {80, 10},   // 61-79 kph → 10%
