@@ -703,7 +703,38 @@ static esp_err_t chinaModeHandler(httpd_req_t *req)
 
 static esp_err_t profileModeAutoHandler(httpd_req_t *req)
 {
-    return featureToggleHandler(req, profileModeAutoRuntime, true, kNvsKeyProfileAuto, "PROFILE_MODE_AUTO");
+    if (!rateLimitOk())
+    {
+        httpd_resp_set_status(req, "429 Too Many Requests");
+        httpd_resp_send(req, "Rate limited", HTTPD_RESP_USE_STRLEN);
+        return ESP_FAIL;
+    }
+    bool enabled = false;
+    if (!parseToggleBody(req, enabled))
+        return ESP_FAIL;
+    if (!nvsWriteBool(kNvsKeyProfileAuto, enabled))
+    {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to persist setting");
+        return ESP_FAIL;
+    }
+    profileModeAutoRuntime = enabled;
+    // When switching to manual mode at runtime, restore the previously saved
+    // manual profile so the profile doesn't stay at whatever the stalk last set.
+    if (!enabled && appHandler)
+    {
+        uint8_t saved = nvsReadU8(kNvsKeyManualProfile, 1);
+        if (saved > 4)
+            saved = 4;
+        appHandler->speedProfile = saved;
+        Serial.printf("Web: PROFILE_MODE_AUTO disabled, restored profile=%d\n", (int)saved);
+    }
+    else
+    {
+        Serial.printf("Web: PROFILE_MODE_AUTO set to %d\n", (int)enabled);
+    }
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, "{\"ok\":true}", HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
 }
 
 static esp_err_t preheatHandler(httpd_req_t *req)
@@ -917,7 +948,19 @@ static esp_err_t speedProfileHandler(httpd_req_t *req)
     if (appHandler)
         appHandler->speedProfile = v;
     nvsWriteU8(kNvsKeyManualProfile, (uint8_t)v);
-    Serial.printf("Web: manual speed profile = %d\n", v);
+    // Manually setting a profile implies the user wants manual mode.
+    // Ensure auto mode is off so the next follow-distance stalk frame (1016)
+    // does not immediately overwrite the profile the user just set.
+    if ((bool)profileModeAutoRuntime)
+    {
+        profileModeAutoRuntime = false;
+        nvsWriteBool(kNvsKeyProfileAuto, false);
+        Serial.printf("Web: profile_mode_auto disabled (manual profile set to %d)\n", v);
+    }
+    else
+    {
+        Serial.printf("Web: manual speed profile = %d\n", v);
+    }
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, "{\"ok\":true}", HTTPD_RESP_USE_STRLEN);
     return ESP_OK;

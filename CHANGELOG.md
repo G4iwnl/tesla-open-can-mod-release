@@ -6,7 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [1.8.0] - 2026-04-24
+## [1.8.1] - 2026-04-24
+
+### Fixed
+
+- **Critical: 手动驾驶档位（Web UI 设置）被跟随拨杆立即覆盖** — `speedProfileHandler` 在 `profileModeAutoRuntime == true` 时写入 profile 后未关闭自动模式，导致下一帧 1016（跟随距离拨杆）立刻将手动档位覆盖；现在调用 `/api/speed-profile` 会自动将 `profile_mode_auto` 切换为 false 并持久化到 NVS
+- **Critical: 运行时切换 auto→manual 模式时，已保存的手动档位不恢复** — `profileModeAutoHandler` 通过通用 `featureToggleHandler` 只更新标志，未从 NVS 读取并应用已保存的手动档位；启动时的恢复逻辑正确但运行时切换时无效；现在切换到 manual 模式时会立即从 NVS 还原 `manualProfile`
+
+### 升级建议
+- 推荐所有使用「手动驾驶模式」功能的用户升级，避免配置失效
+
+---
+
 
 ### Fixed
 
