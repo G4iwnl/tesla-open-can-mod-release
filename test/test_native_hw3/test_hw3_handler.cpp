@@ -224,7 +224,8 @@ void test_hw3_smart_offset_overrides_raw_can()
     f.data[4] = 0x40; // FSD selected
     f.data[3] = 70;   // raw=35 would give (35-30)*5=25% without smart offset
     handler.handleMessage(f, mock);
-    TEST_ASSERT_EQUAL_INT(20, handler.speedOffset); // smart rule wins
+    // Smart path writes pct*4 (CAN-scale), matching manualSpeedOffset encoding.
+    TEST_ASSERT_EQUAL_INT(80, handler.speedOffset); // 20% -> 20*4 = 80
 }
 
 // Smart offset skipped when fusedSpeedLimit == 0 (frame 921 not yet seen)

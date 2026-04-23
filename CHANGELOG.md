@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.2] - 2026-04-24
+
+### Fixed
+
+- **Critical: 智能偏移（Smart Offset）数值被缩小 4 倍** — `computeSpeedOffset()` 智能分支直接返回 `rules.lookup(limit)`（百分比，范围 0-50），而手动偏移通道使用 `pct*4` 的 CAN 编码（范围 0-200，50% 对应 200）。两条路径写入同一 CAN 字段但语义不同：规则设置 20% 的情况下实际输出仅为 5%。现已改为 `lookup(limit) * 4`，与手动/原始通道保持一致
+- **Bug: 智能偏移导致手动模式被「卡死」开启** — 旧版 `appLoop()` 每 500 ms 会把 `manualSpeedOffset = pct*4`、`speedOffsetManualMode = true`，但在用户关闭智能偏移时不会清理。结果用户关闭智能偏移后，手动模式仍保持开启，持续施加上一次的智能偏移值。现已移除 `appLoop()` 里的重复逻辑，完全由 `computeSpeedOffset()` 单一路径处理
+- **Bug: `/api/smart-offset` GET `current_pct` 显示错误值** — 该字段原本依赖 `manualSpeedOffset` 被主循环劫持来显示「当前生效的百分比」。主循环移除后会显示陈旧的手动值。现在在智能模式启用且已接收到融合限速时，直接返回 `rules.lookup(lastFusedSpeedLimit)`（真实生效值）
+
+### 单元测试
+
+- 更新 HW3/HW4 智能偏移测试用例，断言 `speedOffset` 为 `pct*4`（与 CAN 编码一致）：HW3 55 kph → 80，HW4 80 kph → 20
+- 120 个原生单元测试全部通过
+
+### 升级建议
+
+- 强烈推荐升级。如果你之前启用了智能偏移并发现「偏移值设得很低」「禁用后仍然生效」等现象，这个版本修复了根因
+- 升级后如果「手动偏移模式」开关仍处于打开状态（旧版残留），请手动关闭一次
+
+### 固件二进制
+- `firmware-esp32-v1.8.2.bin` — ESP32 (HW4 / HW3 / LEGACY)
+- `firmware-esp32s3-v1.8.2.bin` — ESP32-S3 Waveshare RS485-CAN
+
+---
+
+
 ## [1.8.1] - 2026-04-24
 
 ### Fixed

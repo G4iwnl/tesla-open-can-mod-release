@@ -235,24 +235,12 @@ static void appLoop()
         }
     }
 
-    // ─── Smart offset: auto-adjust based on fusedSpeedLimit ───
-    if (!vehicleOtaPaused && smartOffsetEnabled && canLive.isEnabled())
-    {
-        static unsigned long lastSmartMs = 0;
-        unsigned long now = millis();
-        if (now - lastSmartMs >= 500)
-        {
-            lastSmartMs = now;
-            int limit = _loopSig.fusedSpeedLimit;
-            if (limit > 0)
-            {
-                int pct = smartOffsetRules.lookup(limit);
-                int canVal = pct * 4;
-                manualSpeedOffset = canVal;
-                speedOffsetManualMode = true;
-            }
-        }
-    }
+    // ─── Smart offset ─────────────────────────────────────────────────────
+    // Smart offset is now computed inline inside HW3/HW4 handlers via
+    // computeSpeedOffset() using lastFusedSpeedLimit (decoded from frame 921
+    // in the same handler). The previous implementation here hijacked
+    // speedOffsetManualMode=true as a side channel, which left manual mode
+    // "stuck on" after the user disabled smart offset. Removed in v1.8.2.
 
     // ─── Preheat / Precondition trigger ───
     // Periodically inject UI_tripPlanning (0x082) frames to make the BMS

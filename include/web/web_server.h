@@ -1073,7 +1073,15 @@ static esp_err_t smartOffsetGetHandler(httpd_req_t *req)
 {
     cJSON *root = cJSON_CreateObject();
     cJSON_AddBoolToObject(root, "enabled", (bool)smartOffsetEnabled);
-    cJSON_AddNumberToObject(root, "current_pct", (int)manualSpeedOffset / 4);
+    // current_pct: the offset % that would be applied right now.
+    //   - smart enabled + fusedSpeedLimit seen → rule lookup result
+    //   - otherwise → manual override converted back to percent
+    int curPct = 0;
+    if ((bool)smartOffsetEnabled && (int)lastFusedSpeedLimit > 0)
+        curPct = smartOffsetRules.lookup((int)lastFusedSpeedLimit);
+    else
+        curPct = (int)manualSpeedOffset / 4;
+    cJSON_AddNumberToObject(root, "current_pct", curPct);
     cJSON *arr = cJSON_AddArrayToObject(root, "rules");
     for (int i = 0; i < smartOffsetRules.count; i++)
     {

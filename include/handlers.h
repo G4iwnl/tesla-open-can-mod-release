@@ -97,10 +97,15 @@ struct LegacyHandler : public CarManagerBase
 // ── Speed offset helper ─────────────────────────────────────────────────────
 //
 // Priority (highest to lowest):
-//   1. Manual mode  → use manualSpeedOffset directly
-//   2. Smart offset → look up offset% from fusedSpeedLimit rules
+//   1. Manual mode  → use manualSpeedOffset directly (CAN-scale: pct*4)
+//   2. Smart offset → look up offset% from fusedSpeedLimit rules, scale by 4
 //                     (only when lastFusedSpeedLimit > 0, i.e. frame 921 seen)
 //   3. Raw CAN      → read from frame 1021 mux-0 data[3]: (raw−30)×5, [0,100]
+//
+// Scale note: `manualSpeedOffset` is stored in CAN-units (pct * 4, range
+// 0-200 = 0-50%) to match the 8-bit mux-2 output field encoding used by the
+// Tesla UI. The smart offset path therefore also multiplies its percentage
+// by 4 so both overrides produce identical wire values.
 //
 // This ensures speed-offset is stable across speed-limit changes when smart
 // offset is enabled, fixing the "jumping target speed" symptom.
@@ -109,7 +114,7 @@ static inline int computeSpeedOffset(int rawField)
     if (speedOffsetManualMode)
         return (int)manualSpeedOffset;
     if (smartOffsetEnabled && (int)lastFusedSpeedLimit > 0)
-        return smartOffsetRules.lookup((int)lastFusedSpeedLimit);
+        return smartOffsetRules.lookup((int)lastFusedSpeedLimit) * 4;
     // raw is bits [6:1] of data[3]; formula: (raw−30)×5 → [0,100]
     return std::max(std::min((rawField - 30) * 5, 100), 0);
 }
