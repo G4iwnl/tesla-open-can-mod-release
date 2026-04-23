@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.8.0] - 2026-04-24
+
+### 新增
+- 限速切换平滑功能，HW3/HW4 均支持，防止地图/视觉限速切换时目标速度突变。
+- 优化 HW3/HW4 速度偏移逻辑，提升驾驶体验。
+
+### 升级建议
+- 推荐所有用户升级至 1.8 版本，体验更平顺的限速过渡。
+
+---
+
 ## [Unreleased]
 
 ## [1.6.2] - 2026-04-17
