@@ -19,6 +19,8 @@ void setUp()
     enhancedAutopilotRuntime = true;
     speedOffsetManualMode = false;
     manualSpeedOffset = 0;
+    smartOffsetEnabled = false;
+    lastFusedSpeedLimit = 0;
 }
 
 void tearDown() {}
@@ -280,6 +282,44 @@ void test_hw4_isa_suppress_runtime_off_skips_send()
     TEST_ASSERT_EQUAL(0, mock.sent.size());
 }
 
+// Frame 921 always updates lastFusedSpeedLimit even when ISA suppress is off
+void test_hw4_frame921_updates_fused_speed_limit()
+{
+    isaSpeedChimeSuppressRuntime = false;
+    CanFrame f = {.id = 921};
+    // bits[4:0] of data[1] = 16 => fusedSpeedLimit = 16 * 5 = 80 kph
+    f.data[1] = 0x10;
+    handler.handleMessage(f, mock);
+    TEST_ASSERT_EQUAL_INT(80, (int)lastFusedSpeedLimit);
+    TEST_ASSERT_EQUAL(0, mock.sent.size()); // no send when ISA disabled
+}
+
+// Smart offset overrides CAN raw value when enabled and fusedSpeedLimit is known
+void test_hw4_smart_offset_overrides_raw_can()
+{
+    smartOffsetEnabled = true;
+    lastFusedSpeedLimit = 80; // 80 kph -> rule {999,5} -> 5%
+    CanFrame f = {.id = 1021};
+    f.data[0] = 0x00; // mux 0
+    f.data[4] = 0x40; // FSD selected
+    f.data[3] = 70;   // raw=35 would give (35-30)*5=25% without smart offset
+    handler.handleMessage(f, mock);
+    TEST_ASSERT_EQUAL_INT(5, handler.speedOffset); // smart rule wins
+}
+
+// Smart offset is skipped when fusedSpeedLimit == 0 (frame 921 not yet seen)
+void test_hw4_smart_offset_skipped_when_fused_limit_zero()
+{
+    smartOffsetEnabled = true;
+    lastFusedSpeedLimit = 0; // not yet seen
+    CanFrame f = {.id = 1021};
+    f.data[0] = 0x00;
+    f.data[4] = 0x40;
+    f.data[3] = 70;   // raw=35 => (35-30)*5=25%
+    handler.handleMessage(f, mock);
+    TEST_ASSERT_EQUAL_INT(25, handler.speedOffset); // falls back to raw CAN
+}
+
 // --- Speed offset (mux 0 read + mux 2 inject) ---
 
 void test_hw4_mux0_reads_speed_offset_from_can()
@@ -436,6 +476,9 @@ int main()
     RUN_TEST(test_hw4_isa_suppress_checksum_correct);
     RUN_TEST(test_hw4_isa_suppress_returns_early_no_further_processing);
     RUN_TEST(test_hw4_isa_suppress_runtime_off_skips_send);
+    RUN_TEST(test_hw4_frame921_updates_fused_speed_limit);
+    RUN_TEST(test_hw4_smart_offset_overrides_raw_can);
+    RUN_TEST(test_hw4_smart_offset_skipped_when_fused_limit_zero);
 
     return UNITY_END();
 }

@@ -107,6 +107,11 @@ inline Shared<unsigned long> preheatMaxDurationMs{30UL * 60 * 1000}; // 30 min d
 inline Shared<bool> speedOffsetManualMode{false};
 inline Shared<int> manualSpeedOffset{0}; // CAN value (pct * 4)
 
+// Last known fused speed limit (kph) decoded from DAS_status (0x399 / frame 921).
+// Updated by HW3Handler and HW4Handler on every frame 921 seen.
+// Used by smart offset to look up the correct offset percentage.
+inline Shared<int> lastFusedSpeedLimit{0};
+
 // Smart offset: auto-adjust offset based on fusedSpeedLimit.
 // Rules: if limit < threshold[i], use offsetPct[i].
 inline Shared<bool> smartOffsetEnabled{false};

@@ -14,6 +14,10 @@ void setUp()
     handler = HW3Handler();
     handler.enablePrint = false;
     enhancedAutopilotRuntime = true;
+    speedOffsetManualMode = false;
+    manualSpeedOffset = 0;
+    smartOffsetEnabled = false;
+    lastFusedSpeedLimit = 0;
 }
 
 void tearDown() {}
@@ -198,19 +202,59 @@ void test_hw3_mux1_sends_exactly_1()
     TEST_ASSERT_EQUAL(1, mock.sent.size());
 }
 
+// --- Frame 921 (DAS_status): fusedSpeedLimit decode for smart offset ---
+
+void test_hw3_frame921_updates_fused_speed_limit()
+{
+    CanFrame f = {.id = 921};
+    // bits[4:0] of data[1] = 12 => fusedSpeedLimit = 12 * 5 = 60 kph
+    f.data[1] = 0x0C;
+    handler.handleMessage(f, mock);
+    TEST_ASSERT_EQUAL_INT(60, (int)lastFusedSpeedLimit);
+    TEST_ASSERT_EQUAL(0, mock.sent.size()); // HW3 does not modify/send frame 921
+}
+
+// Smart offset overrides CAN raw value when enabled and fusedSpeedLimit is known
+void test_hw3_smart_offset_overrides_raw_can()
+{
+    smartOffsetEnabled = true;
+    lastFusedSpeedLimit = 55; // 55 kph -> rule {61,20} -> 20%
+    CanFrame f = {.id = 1021};
+    f.data[0] = 0x00; // mux 0
+    f.data[4] = 0x40; // FSD selected
+    f.data[3] = 70;   // raw=35 would give (35-30)*5=25% without smart offset
+    handler.handleMessage(f, mock);
+    TEST_ASSERT_EQUAL_INT(20, handler.speedOffset); // smart rule wins
+}
+
+// Smart offset skipped when fusedSpeedLimit == 0 (frame 921 not yet seen)
+void test_hw3_smart_offset_skipped_when_fused_limit_zero()
+{
+    smartOffsetEnabled = true;
+    lastFusedSpeedLimit = 0;
+    CanFrame f = {.id = 1021};
+    f.data[0] = 0x00;
+    f.data[4] = 0x40;
+    f.data[3] = 70; // raw=35 => 25%
+    handler.handleMessage(f, mock);
+    TEST_ASSERT_EQUAL_INT(25, handler.speedOffset); // falls back to raw CAN
+}
+
 // --- Filter IDs ---
 
 void test_hw3_filter_ids_count()
 {
-    TEST_ASSERT_EQUAL_UINT8(3, handler.filterIdCount());
+    // 921 (DAS_status) added to decode fusedSpeedLimit for smart offset
+    TEST_ASSERT_EQUAL_UINT8(4, handler.filterIdCount());
 }
 
 void test_hw3_filter_ids_values()
 {
     const uint32_t *ids = handler.filterIds();
-    TEST_ASSERT_EQUAL_UINT32(787, ids[0]);
-    TEST_ASSERT_EQUAL_UINT32(1016, ids[1]);
-    TEST_ASSERT_EQUAL_UINT32(1021, ids[2]);
+    TEST_ASSERT_EQUAL_UINT32(787,  ids[0]);
+    TEST_ASSERT_EQUAL_UINT32(921,  ids[1]);
+    TEST_ASSERT_EQUAL_UINT32(1016, ids[2]);
+    TEST_ASSERT_EQUAL_UINT32(1021, ids[3]);
 }
 
 int main()
@@ -238,6 +282,9 @@ int main()
 
     RUN_TEST(test_hw3_fsd_enabled_mux0_sends_exactly_1);
     RUN_TEST(test_hw3_mux1_sends_exactly_1);
+    RUN_TEST(test_hw3_frame921_updates_fused_speed_limit);
+    RUN_TEST(test_hw3_smart_offset_overrides_raw_can);
+    RUN_TEST(test_hw3_smart_offset_skipped_when_fused_limit_zero);
 
     return UNITY_END();
 }

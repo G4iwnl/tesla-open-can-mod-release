@@ -8,12 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.8.0] - 2026-04-24
 
-### 新增
-- 限速切换平滑功能，HW3/HW4 均支持，防止地图/视觉限速切换时目标速度突变。
-- 优化 HW3/HW4 速度偏移逻辑，提升驾驶体验。
+### Fixed
+
+- **Critical: handlers.h 结构损坏** — 上个提交将 `#pragma once`、所有 `#include`、`CarManagerBase`、`LegacyHandler` 全部删除，并将 `HW4Handler` 的错误代码嵌入到 `HW3Handler` 的 `switch` 语句中；已完全重写为正确结构
+- **Critical: 智能偏移（Smart Offset）从未生效** — `smartOffsetEnabled` 和 `smartOffsetRules` 虽已通过 Web UI 配置并保存到 NVS，但 HW3/HW4 处理器从未读取这些配置；速度偏移始终使用 CAN 原始值，导致限速切换时目标速度乱跳
+- **Bug: HW3Handler 缺少 fusedSpeedLimit 解码** — HW3Handler 不监听帧 921（DAS_status），无法获取融合限速用于智能偏移；现已将 921 加入 HW3 过滤列表
+
+### 改进
+
+- **速度偏移优先级明确化**：手动模式 > 智能偏移（需 fusedSpeedLimit > 0）> CAN 原始值；通过独立 `computeSpeedOffset()` 函数统一实现，HW3/HW4 共享同一逻辑
+- **HW4 帧 921 处理优化**：无论 ISA 静音是否开启，始终先解码 `fusedSpeedLimit`；避免限速为零时触发错误的智能偏移规则（fusedSpeedLimit == 0 时回退到 CAN 原始值）
+- **调试日志增强**：HW3/HW4 的 offset 日志现在同时显示 `fused:<kph>` 字段，便于现场诊断智能偏移是否生效
+- **新增测试覆盖**：为 HW3/HW4 新增智能偏移单元测试（共 6 个）；`setUp()` 现在重置所有全局运行时标志，防止测试间状态污染
 
 ### 升级建议
-- 推荐所有用户升级至 1.8 版本，体验更平顺的限速过渡。
+
+- 推荐所有用户升级至 v1.8.0
+- 若之前启用了智能偏移但发现不生效，升级后无需重新配置，NVS 中的规则会自动生效
 
 ---
 
