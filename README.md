@@ -1,10 +1,23 @@
 ## v1.8 版本亮点
 
-### 新增
-- 限速切换平滑功能，HW3/HW4 均支持，防止地图/视觉限速切换时目标速度突变。
+### v1.8.2（最新，强烈推荐升级）
+- **修复 智能偏移（Smart Offset）数值被缩小 4 倍**：之前规则设 20% 实际输出仅约 5%，现已修正，规则百分比与 CAN 编码一致
+- **修复 智能偏移导致手动模式被「卡死」开启**：关闭智能偏移后手动模式不会再残留；速度偏移现由单一路径处理
+- **修复 `/api/smart-offset` `current_pct` 显示陈旧值**：现在实时基于 `fusedSpeedLimit` 查询当前规则
+
+### v1.8.1
+- **修复 手动驾驶档位被跟随拨杆立即覆盖**：设置手动档位会自动关闭 `profile_mode_auto` 并持久化到 NVS
+- **修复 运行时 auto→manual 切换时已保存的手动档位未恢复**：切换后会立即从 NVS 还原
+
+### v1.8.0
+- **修复 `handlers.h` 结构损坏**：恢复 `#pragma once`、includes、`CarManagerBase`、`LegacyHandler`
+- **修复 智能偏移从未生效**：HW3/HW4 现在读取 NVS 中的智能偏移规则，并通过帧 921 解码 `fusedSpeedLimit`
+- **新增 HW3 对帧 921 的解码**，用于智能偏移
+- **速度偏移优先级明确化**：手动模式 > 智能偏移 > CAN 原始值，由 `computeSpeedOffset()` 统一实现
 
 ### 升级建议
-- 推荐所有用户升级至 1.8 版本，体验更平顺的限速过渡。
+- 推荐所有用户升级至 1.8.2，修复了 1.8.0/1.8.1 中的关键 bug
+- 升级后如果「手动偏移模式」开关残留为开启状态（旧版副作用），请手动关闭一次即可
 
 ### 🚨 DO NOT UPDATE YOUR TESLA TO `2026.8.6`, `2026.2.9.x` OR `2026.2.300` TO KEEP FSD FEATURES 🚨
 
@@ -17,7 +30,7 @@
 
 An open-source general-purpose CAN bus modification tool for Tesla vehicles. While FSD enablement was the starting point, the goal is to expose and control everything accessible via CAN — speed control, nag suppression, battery preconditioning, ISA chime mute, emergency vehicle awareness, and more.
 
-**Current Version:** 1.6.1 · **Platform:** ESP32 / ESP32-S3 · **Interface:** TWAI (CAN) · **Language:** C++ (PlatformIO + Arduino framework)
+**Current Version:** 1.8.2 · **Platform:** ESP32 / ESP32-S3 · **Interface:** TWAI (CAN) · **Language:** C++ (PlatformIO + Arduino framework)
 
 ## Disclaimer
 
@@ -202,7 +215,7 @@ pio run -e esp32_twai
 # Flash over USB
 pio run -e waveshare_esp32s3_rs485_can -t upload
 
-# Run unit tests (114 native tests)
+# Run unit tests (120 native tests)
 pio test -e native
 ```
 
