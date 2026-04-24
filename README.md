@@ -16,277 +16,277 @@
 - **速度偏移优先级明确化**：手动模式 > 智能偏移 > CAN 原始值，由 `computeSpeedOffset()` 统一实现
 
 ### 升级建议
-- 推荐所有用户升级至 1.8.2，修复了 1.8.0/1.8.1 中的关键 bug
+- 推荐所有用户升级至 1.8.2，修复了 1.8.0/1.8.1 中的关键缺陷
 - 升级后如果「手动偏移模式」开关残留为开启状态（旧版副作用），请手动关闭一次即可
 
-### 🚨 DO NOT UPDATE YOUR TESLA TO `2026.8.6`, `2026.2.9.x` OR `2026.2.300` TO KEEP FSD FEATURES 🚨
+### 🚨 请勿将你的 Tesla 升级到 `2026.8.6`、`2026.2.9.x` 或 `2026.2.300`，以保留 FSD 功能 🚨
 
 <br>
 <hr>
 
-# Tesla Open Can Mod
+# Tesla Open CAN Mod
 
-> This project is a fork of [Tesla-OPEN-CAN-MOD](https://gitlab.com/Tesla-OPEN-CAN-MOD/tesla-open-can-mod). Thanks to the original author for the open-source contribution.
+> 本项目是 [Tesla-OPEN-CAN-MOD](https://gitlab.com/Tesla-OPEN-CAN-MOD/tesla-open-can-mod) 的一个分支。感谢原作者的开源贡献。
 
-An open-source general-purpose CAN bus modification tool for Tesla vehicles. While FSD enablement was the starting point, the goal is to expose and control everything accessible via CAN — speed control, nag suppression, battery preconditioning, ISA chime mute, emergency vehicle awareness, and more.
+这是一个面向 Tesla 车辆的开源通用 CAN 总线修改工具。项目最初从启用 FSD 出发，但目标是暴露并控制所有可通过 CAN 访问的功能，包括速度控制、nag 抑制、电池预热、ISA 提示音静音、紧急车辆感知等。
 
-**Current Version:** 1.8.2 · **Platform:** ESP32 / ESP32-S3 · **Interface:** TWAI (CAN) · **Language:** C++ (PlatformIO + Arduino framework)
+**当前版本：** 1.8.2 · **平台：** ESP32 / ESP32-S3 · **接口：** TWAI（CAN）· **语言：** C++（PlatformIO + Arduino 框架）
 
-## Disclaimer
-
-> [!WARNING]
-> **FSD is a premium feature and must be properly purchased or subscribed to.** Any attempt to bypass the purchase or subscription requirement will result in a permanent ban from Tesla services.
+## 免责声明
 
 > [!WARNING]
-> **Modifying CAN bus messages can cause dangerous behavior or permanently damage your vehicle.** The CAN bus controls everything from braking and steering to airbags — a malformed message can have serious consequences. If you don't fully understand what you're doing, **do not install this on your car**.
+> **FSD 是付费功能，必须已正确购买或订阅。** 任何试图绕过购买或订阅要求的行为，都可能导致 Tesla 服务永久封禁。
 
-This project is for testing and educational purposes only and for use on **private property**. The authors accept no responsibility for any damage to your vehicle, injury, or legal consequences resulting from the use of this software. This project may void your vehicle warranty and **may not comply with road safety regulations in your jurisdiction**.
+> [!WARNING]
+> **修改 CAN 总线报文可能导致危险行为，甚至永久损坏车辆。** CAN 总线控制从制动、转向到安全气囊等几乎所有系统，错误报文可能带来严重后果。如果你不能完全理解自己在做什么，**请不要把它安装到车上**。
 
-For any use beyond private testing, you are responsible for complying with all applicable local laws and regulations. Always keep your hands on the wheel and stay attentive while driving.
+本项目仅用于测试和教育目的，且只适用于**私人场地**。作者对因使用本软件而造成的车辆损坏、人身伤害或法律后果概不负责。本项目可能使车辆保修失效，并且**可能不符合你所在地区的道路安全法规**。
 
-## Features
+如果你的使用超出私人测试范围，你需要自行遵守所有适用的当地法律法规。行驶时务必双手扶方向盘并保持注意力集中。
 
-### CAN Bus Modifications
+## 功能
 
-- **FSD Activation** — Enables Full Self-Driving at the CAN bus level by intercepting and modifying Autopilot control frames (0x3FD / 0x3EE)
-- **Nag Suppression** — Clears the hands-on-wheel ECE R79 nag bit, suppressing the periodic "apply pressure to the steering wheel" warning
-- **Autosteer Nag Killer** — Suppresses the Autopilot "hands on wheel" alert by echoing a modified EPAS3P_sysStatus frame (0x370) with spoofed torque (1.80 Nm) and incremented counter on CAN bus 4
-- **Enhanced Autopilot** — Enables Enhanced Autopilot features including Summon (HW3/HW4, optional)
-- **Speed Profiles** — 5 aggressiveness profiles (Chill / Normal / Hurry / Max / Sloth); auto mode maps follow-distance stalk setting, or manual mode via web UI
-- **Speed Offset (Manual)** — Adjustable 0–50% speed offset applied on top of the Autopilot set speed (HW3/HW4)
-- **Smart Speed Offset** — Up to 8 speed-based rules that automatically adjust offset based on the current fused speed limit. Default rules: ≤40→50%, 50→30%, 60→20%, 80+→10%
-- **ISA Speed Chime Suppression** — Mutes the Intelligent Speed Assistance audible chime while keeping the visual indicator active (HW4, optional)
-- **Emergency Vehicle Detection** — Enables approaching emergency vehicle detection on FSD v14 (HW4, optional)
-- **Battery Preheat** — Triggers BMS battery preconditioning by injecting UI_tripPlanning frames (0x082) every 500 ms. Configurable auto-stop by temperature (-5–25°C) and max duration (10–60 min)
-- **China Mode** — Bypasses traffic light/stop sign UI selection check for China-region firmware
+### CAN 总线改动
 
-### Web Interface
+- **FSD 激活** — 通过拦截并修改 Autopilot 控制帧（0x3FD / 0x3EE）在 CAN 层启用 FSD
+- **Nag 抑制** — 清除方向盘施力检测的 ECE R79 nag bit，抑制周期性的“请对方向盘施加压力”提示
+- **Autosteer Nag Killer** — 通过在 CAN 4 上回显修改后的 EPAS3P_sysStatus 帧（0x370），伪造 1.80 Nm 扭矩并递增计数器，从而抑制 Autopilot 的“请握住方向盘”警告
+- **增强版自动辅助驾驶** — 启用 Enhanced Autopilot 功能，包括召唤（HW3/HW4，可选）
+- **速度档位** — 5 个驾驶激进程度档位（Chill / Normal / Hurry / Max / Sloth）；自动模式会根据跟车距离拨杆映射，或通过 Web 界面手动设置
+- **手动速度偏移** — 在 Autopilot 目标速度之上叠加 0–50% 的速度偏移（HW3/HW4）
+- **智能速度偏移** — 最多 8 条基于速度的规则，会根据当前融合限速自动调整偏移。默认规则：≤40→50%、50→30%、60→20%、80+→10%
+- **ISA 限速提示音抑制** — 在保留视觉提示的同时，静音 Intelligent Speed Assistance 的提示音（HW4，可选）
+- **紧急车辆检测** — 启用 FSD v14 上的紧急车辆接近检测（HW4，可选）
+- **电池预热** — 通过每 500 ms 注入 UI_tripPlanning 帧（0x082）触发 BMS 电池预调节。可配置按温度（-5–25°C）和最长时间（10–60 分钟）自动停止
+- **中国模式** — 绕过交通灯/停车标志 UI 选择检查，适用于中国地区固件
 
-A built-in WiFi hotspot (AP mode, SSID `TeslaCAN`) serves a full-featured single-page web dashboard. Optional STA mode allows connecting to a home/garage WiFi network.
+### Web 界面
 
-**Dashboard Tab**
-- Real-time signal monitoring: throttle, speed limits, hands-on level, follow distance, gear
-- Battery status: SoC%, voltage, current, temperature min/max
-- Live speed/SoC/power chart (Canvas, 120-point ring buffer)
-- Speed profile selector and offset controls
+内置 WiFi 热点（AP 模式，SSID 为 `TeslaCAN`）提供功能完整的单页 Web 仪表盘。可选 STA 模式可连接家庭/车库 WiFi 网络。
 
-**Settings Tab**
-- Runtime hardware mode switch (Legacy / HW3 / HW4) with NVS persistence
-- Feature toggles: Bypass TLSSC, ISA Chime, Emergency Vehicle, Enhanced AP, Nag Killer, China Mode
-- Preheat controls with status panel (elapsed time, battery temp, auto-stop config)
+**仪表盘标签页**
+- 实时信号监控：油门、限速、方向盘施力等级、跟车距离、档位
+- 电池状态：SoC%、电压、电流、最低/最高温度
+- 实时速度/SoC/功率图表（Canvas，120 点环形缓冲区）
+- 速度档位选择器和偏移控制
 
-**System Tab**
-- System info: chip temperature, handler latency (avg/max), free heap/PSRAM
-- WiFi SSID/password configuration
-- OTA firmware upload with progress bar and MD5 verification
-- Drive data recording: ring buffer with CSV export (speed, accel, steer, battery, temps)
-- Live log viewer (256-entry ring buffer)
+**设置标签页**
+- 运行时硬件模式切换（Legacy / HW3 / HW4），支持 NVS 持久化
+- 功能开关：BYPASS TLSSC、ISA Chime、Emergency Vehicle、Enhanced AP、Nag Killer、China Mode
+- 预热控制和状态面板（运行时长、电池温度、自动停止配置）
 
-**UI Features**
-- Auto dark/light theme following vehicle headlight state (CAN 0x185)
-- Bilingual i18n: Simplified Chinese / English, switchable at runtime
-- Captive portal support (iOS/Android auto-redirect)
+**系统标签页**
+- 系统信息：芯片温度、处理延迟（平均/最大）、可用堆内存/PSRAM
+- WiFi SSID/密码配置
+- OTA 固件上传（带进度条和 MD5 校验）
+- 驾驶数据记录：带 CSV 导出的环形缓冲区（速度、加速度、转向、电池、温度）
+- 实时日志查看器（256 条目环形缓冲区）
 
-### Safety & Reliability
+**界面特性**
+- 根据车辆车灯状态自动切换深色/浅色主题（CAN 0x185）
+- 双语 i18n：简体中文 / 英文，可在运行时切换
+- 支持 captive portal（iOS / Android 自动跳转）
 
-- **OTA Protection** — Automatically pauses all CAN modifications when a vehicle OTA update is detected (GTW_carState 0x318); auto-resumes after completion
-- **NVS Corruption Recovery** — Detects NVS flash corruption on boot, auto-erases and reinitializes with defaults
-- **Preheat Safeguards** — Auto-stop by temperature threshold and max duration; not persisted on reboot (requires manual re-enable)
-- **Speed Offset Warning** — Safety modal on first non-zero offset use
-- **Rate Limiting** — 500 ms minimum interval on all POST endpoints (429 on overflow)
-- **Single-Shot TX** — Preheat injection uses TWAI_MSG_FLAG_SS to prevent CAN retry storms
+### 安全与可靠性
 
-### Performance
+- **OTA 保护** — 检测到车辆 OTA 更新时，会自动暂停所有 CAN 修改；完成后自动恢复
+- **NVS 损坏恢复** — 启动时检测 NVS Flash 损坏，自动擦除并使用默认值重新初始化
+- **预热安全保护** — 按温度阈值和最长时间自动停止；重启后不持久化（需要手动重新开启）
+- **速度偏移警告** — 首次启用非零速度偏移时弹出安全确认
+- **速率限制** — 所有 POST 端点都强制 500 ms 最小间隔（超限返回 429）
+- **单次发送** — 预热注入使用 TWAI_MSG_FLAG_SS，避免 CAN 重试风暴
 
-- **O(1) CAN Filtering** — 32-element bitmask array covers IDs 0–1023; no linear search per frame
-- **O(1) Signal Lookup** — 1024-element direct-mapped table for CAN live signal updates
-- **Zero-Allocation JSON** — canLiveHandler and statusHandler use snprintf with static buffers (no malloc per request)
-- **Single Decode Pass** — OTA check, smart offset, and preheat share one `decodeSignals()` call per loop iteration
-- **Canvas Throttling** — Chart and CAN table use `requestAnimationFrame` with visibility check; skip redraw when tab is hidden
-- **Cached DOM Queries** — Repeated `querySelectorAll` results are cached on first access
+### 性能
 
-## CAN Signal Reference
+- **O(1) CAN 过滤** — 32 元素位掩码数组覆盖 0–1023 号 ID；每帧无需线性搜索
+- **O(1) 信号查找** — 1024 元素直接映射表用于 CAN Live 信号更新
+- **零分配 JSON** — canLiveHandler 和 statusHandler 使用 snprintf 组装静态缓冲区（无需每次请求分配 cJSON 树）
+- **单次解码** — OTA 检查、智能偏移和预热共享同一次 `decodeSignals()` 调用
+- **Canvas 节流** — 图表和 CAN 表格使用 `requestAnimationFrame` 并检查可见性；标签页隐藏时跳过重绘
+- **缓存 DOM 查询** — 重复的 `querySelectorAll` 结果会在首次访问后缓存
 
-All CAN signals used by this firmware are listed below. **Modified** signals are intercepted and re-transmitted with altered bits. **Injected** signals are generated by the firmware. **Monitor-only** signals are passively decoded for the web dashboard.
+## CAN 信号参考
 
-### Modified & Injected Signals
+下表列出本固件使用的所有 CAN 信号。**修改** 信号会被拦截并以变更后的位重新发送。**注入** 信号由固件生成。**仅监控** 信号只用于 Web 仪表盘的被动解码。
 
-| CAN ID | Name | Direction | Handler | Function |
-|--------|------|-----------|---------|----------|
-| `0x045` (69) | STW_ACTN_RQ | Read | Legacy | Reads follow-distance stalk position to map speed profiles |
-| `0x082` (130) | UI_tripPlanning | **Inject** | Preheat | Injected every 500 ms with `byte[0]=0x05` to trigger BMS battery preconditioning |
-| `0x313` (787) | TrackModeRequest | **Modify** | HW3 | Sets track-mode request bit (`byte[0] bit 0-1 = 0x01`) and recalculates checksum |
-| `0x370` (880) | EPAS3P_sysStatus | **Inject** | NagKiller | When `handsOnLevel=0`, echoes a spoofed frame with `torsionBarTorque=1.80 Nm`, `handsOnLevel=1`, counter+1, and recalculated checksum |
-| `0x399` (921) | DAS_status | **Modify** | HW4 | ISA speed chime suppression: sets `byte[1] \| 0x20` and recalculates checksum |
-| `0x3EE` (1006) | UI_autopilotControl | **Modify** | Legacy | Mux 0: enables FSD (`bit 46`), sets speed profile. Mux 1: clears ECE R79 nag (`bit 19`) |
-| `0x3F8` (1016) | UI_driverAssistControl | Read | HW3 / HW4 | Reads follow-distance setting (`byte[5] bits 5-7`) for auto speed-profile mapping |
-| `0x3FD` (1021) | UI_autopilotControl | **Modify** | HW3 / HW4 | Mux 0: enables FSD (`bit 46`), reads/writes speed offset, emergency vehicle detection (`bit 59`, HW4). Mux 1: clears ECE R79 nag (`bit 19`), enables enhanced AP (`bit 47`, HW4). Mux 2: writes speed offset and speed profile |
+### 修改与注入信号
 
-### Monitor-Only Signals (Web Dashboard)
+| CAN ID | 名称 | 方向 | 处理器 | 功能 |
+|--------|------|------|--------|------|
+| `0x045` (69) | STW_ACTN_RQ | 读取 | Legacy | 读取跟车距离拨杆位置，用于映射速度档位 |
+| `0x082` (130) | UI_tripPlanning | **注入** | Preheat | 每 500 ms 注入 `byte[0]=0x05`，触发 BMS 电池预调节 |
+| `0x313` (787) | TrackModeRequest | **修改** | HW3 | 设置赛道模式请求位（`byte[0] bit 0-1 = 0x01`），并重算校验和 |
+| `0x370` (880) | EPAS3P_sysStatus | **注入** | NagKiller | 当 `handsOnLevel=0` 时，回显伪造帧，设置 `torsionBarTorque=1.80 Nm`、`handsOnLevel=1`、计数器 +1，并重算校验和 |
+| `0x399` (921) | DAS_status | **修改** | HW4 | ISA 限速提示音抑制：设置 `byte[1]` 的 0x20 位并重算校验和 |
+| `0x3EE` (1006) | UI_autopilotControl | **修改** | Legacy | Mux 0：启用 FSD（`bit 46`），设置速度档位。Mux 1：清除 ECE R79 nag（`bit 19`） |
+| `0x3F8` (1016) | UI_driverAssistControl | 读取 | HW3 / HW4 | 读取跟车距离设置（`byte[5] bits 5-7`），用于自动映射速度档位 |
+| `0x3FD` (1021) | UI_autopilotControl | **修改** | HW3 / HW4 | Mux 0：启用 FSD（`bit 46`），读写速度偏移，紧急车辆检测（`bit 59`，HW4）。Mux 1：清除 ECE R79 nag（`bit 19`），启用增强版 AP（`bit 47`，HW4）。Mux 2：写入速度偏移和速度档位 |
 
-These signals are passively decoded from the CAN bus for the real-time dashboard. They are **never modified or re-transmitted**.
+### 仅监控信号（Web 仪表盘）
 
-| CAN ID | Name | Decoded Fields | Unit |
-|--------|------|----------------|------|
-| `0x118` (280) | DI_systemStatus | Gear position, accelerator pedal position | —, % |
-| `0x132` (306) | BMS_hvBusStatus | Pack voltage, pack current | V, A |
-| `0x185` (389) | Lighting | Light state, raw bytes 3-4 | — |
-| `0x238` (568) | UI_driverAssistMapData | Map speed limit | kph |
-| `0x257` (599) | DI_speed | Vehicle speed, UI display speed, speed units | kph, kph/mph |
-| `0x292` (658) | BMS_socStatus | Battery state of charge | % |
-| `0x2B9` (697) | DAS_control | DAS set speed, ACC state | kph, enum |
-| `0x312` (786) | BMS_thermalStatus | Battery temp min / max | °C |
-| `0x318` (792) | GTW_carState | OTA update in progress flag | bool |
-| `0x334` (820) | UI_powertrainControl | Vehicle speed limit | kph |
-| `0x370` (880) | EPAS3P_sysStatus | Hands-on level, torsion bar torque, counter | enum, Nm, — |
-| `0x389` (905) | DAS_status2 | ACC speed limit | kph |
-| `0x399` (921) | DAS_status | Fused speed limit, vision speed limit, suppress speed warning | kph, kph, bool |
-| `0x3D9` (985) | UI_gpsVehicleSpeed | GPS speed, user speed offset, MPP speed limit | kph, kph, kph |
-| `0x3F8` (1016) | UI_driverAssistControl | Follow distance setting | 1-7 |
-| `0x3FD` (1021) | UI_autopilotControl | FSD UI selection, FSD enabled, HW4 lock, speed profile, speed offset, ECE R79 nag | — |
+这些信号会被动地从 CAN 总线解码，用于实时仪表盘显示。它们**不会被修改或重新发送**。
 
-> **Note:** Signals `0x145` (ESP_status brake torque) and `0x261` (motor torque) are defined in the decoder but currently disabled because their byte positions have not been verified on the X179 CAN bus.
+| CAN ID | 名称 | 解码字段 | 单位 |
+|--------|------|----------|------|
+| `0x118` (280) | DI_systemStatus | 档位、油门踏板位置 | —, % |
+| `0x132` (306) | BMS_hvBusStatus | 电池包电压、电流 | V, A |
+| `0x185` (389) | Lighting | 灯光状态、原始字节 3-4 | — |
+| `0x238` (568) | UI_driverAssistMapData | 地图限速 | kph |
+| `0x257` (599) | DI_speed | 车速、界面显示速度、速度单位 | kph, kph/mph |
+| `0x292` (658) | BMS_socStatus | 电池荷电状态 | % |
+| `0x2B9` (697) | DAS_control | DAS 目标速度、ACC 状态 | kph, 枚举 |
+| `0x312` (786) | BMS_thermalStatus | 电池最低/最高温度 | °C |
+| `0x318` (792) | GTW_carState | OTA 更新进行中标志 | bool |
+| `0x334` (820) | UI_powertrainControl | 整车速度限制 | kph |
+| `0x370` (880) | EPAS3P_sysStatus | 方向盘施力等级、扭矩、计数器 | 枚举, Nm, — |
+| `0x389` (905) | DAS_status2 | ACC 速度上限 | kph |
+| `0x399` (921) | DAS_status | 融合限速、视觉限速、超速警告抑制 | kph, kph, bool |
+| `0x3D9` (985) | UI_gpsVehicleSpeed | GPS 速度、用户速度偏移、MPP 限速 | kph, kph, kph |
+| `0x3F8` (1016) | UI_driverAssistControl | 跟车距离设置 | 1-7 |
+| `0x3FD` (1021) | UI_autopilotControl | FSD UI 选择、FSD 启用、HW4 锁、速度档位、速度偏移、ECE R79 nag | — |
 
-## How It Works
+> **注意：** `0x145`（ESP_status brake torque）和 `0x261`（motor torque）在解码器中已定义，但目前已禁用，因为它们在 X179 CAN 总线上的字节位置尚未验证。
 
-The firmware runs on ESP32 and ESP32-S3 boards with the native TWAI (CAN) peripheral. It sits on the vehicle CAN bus, intercepts relevant frames, modifies the necessary bits, and re-transmits the modified frames — all in real time.
+## 工作原理
 
-A bitmask-based O(1) filter determines which CAN IDs the active handler needs. Non-matching frames pass through untouched. The hardware variant (Legacy / HW3 / HW4) can be set at build time or switched at runtime (ESP32-S3 boards with `RUNTIME_HW_SWITCH`). A WiFi web interface provides runtime control, real-time monitoring, and over-the-air firmware updates.
+固件运行在支持原生 TWAI（CAN）外设的 ESP32 和 ESP32-S3 板子上。它位于车辆 CAN 总线上，拦截相关报文，修改必要位，并把修改后的报文重新发送——全部实时完成。
 
-### Architecture
+一个基于位掩码的 O(1) 过滤器决定当前处理器需要哪些 CAN ID。非匹配报文会原样放行。硬件变体（Legacy / HW3 / HW4）可以在编译时指定，也可以在运行时切换（仅限支持 `RUNTIME_HW_SWITCH` 的 ESP32-S3 板子）。WiFi Web 界面提供运行时控制、实时监控和 OTA 固件更新。
+
+### 架构
 
 ```
-Vehicle CAN Bus
+车辆 CAN 总线
       │
   ┌───┴───┐
   │ TWAI  │  ESP32/ESP32-S3
-  │ Driver │
+  │ 驱动   │
   └───┬───┘
       │
   ┌───┴──────────┐
-  │  App Loop    │  ~1 ms cycle
+  │  主循环      │  ~1 ms 周期
   │  ┌────────┐  │
-  │  │ Filter │──┤── O(1) bitmask check
+  │  │ 过滤器 │──┤── O(1) 位掩码检查
   │  └───┬────┘  │
   │  ┌───┴────┐  │
-  │  │Handler │──┤── Legacy / HW3 / HW4
+  │  │ 处理器 │──┤── Legacy / HW3 / HW4
   │  └───┬────┘  │
   │  ┌───┴────┐  │
-  │  │Decode  │──┤── Signal monitor (1 pass/loop)
+  │  │ 解码   │──┤── 信号监控（每轮 1 次）
   │  └────────┘  │
   └──────────────┘
       │
   ┌───┴──────────┐
-  │  Web Server  │  HTTP on :80
-  │  29 endpoints│
-  │  WiFi AP+STA │
+  │  Web 服务器  │  HTTP :80
+  │  29 个端点    │
+  │  WiFi AP+STA  │
   └──────────────┘
 ```
 
-## Prerequisites
+## 先决条件
 
-**An active FSD package is required to use FSD-related features** — either purchased or subscribed. This board enables the FSD functionality on the CAN bus level, but the vehicle still needs a valid FSD entitlement from Tesla.
+**使用 FSD 相关功能需要有效的 FSD 套餐** —— 无论是购买还是订阅。这个板子只是在 CAN 层启用 FSD 功能，但车辆本身仍然需要 Tesla 的有效 FSD 权益。
 
-Features like the Autosteer Nag Killer, ISA Speed Chime Suppression, Battery Preheat, and the Web Interface work independently and do not require FSD.
+Autosteer Nag Killer、ISA 限速提示音抑制、电池预热和 Web 界面等功能可以独立使用，不需要 FSD。
 
-If FSD subscriptions are not available in your region, there is a workaround using a foreign Tesla account.
+如果你所在地区无法使用 FSD 订阅，可以通过海外 Tesla 账号作为变通方案。
 
-## Supported Boards
+## 支持的开发板
 
-| Board                                                                   | CAN Interface              | PSRAM | Status      |
-|-------------------------------------------------------------------------|----------------------------|-------|-------------|
-| [Waveshare ESP32-S3 RS485/CAN](https://www.waveshare.com/esp32-s3-rs485-can.htm) | SIT1050T + ESP32-S3 TWAI   | 8 MB  | Recommended |
-| ESP32 + CAN transceiver (e.g. ESP32-DevKitC + SN65HVD230)               | Native TWAI peripheral     | —     | Tested      |
-| [Atomic CAN Base](https://docs.m5stack.com/en/atom/Atomic%20CAN%20Base) | CA-IS3050G + ESP32 TWAI    | —     | Tested      |
-| M5Stack AtomS3 + CAN Base                                               | CA-IS3050G + ESP32-S3 TWAI | —     | Tested      |
-| LilyGo T-CAN485                                                         | ESP32 TWAI + SN65HVD230    | —     | Tested      |
+| 开发板 | CAN 接口 | PSRAM | 状态 |
+|--------|----------|-------|------|
+| [Waveshare ESP32-S3 RS485/CAN](https://www.waveshare.com/esp32-s3-rs485-can.htm) | SIT1050T + ESP32-S3 TWAI | 8 MB | 推荐 |
+| ESP32 + CAN 收发器（例如 ESP32-DevKitC + SN65HVD230） | 原生 TWAI 外设 | — | 已测试 |
+| [Atomic CAN Base](https://docs.m5stack.com/en/atom/Atomic%20CAN%20Base) | CA-IS3050G + ESP32 TWAI | — | 已测试 |
+| M5Stack AtomS3 + CAN Base | CA-IS3050G + ESP32-S3 TWAI | — | 已测试 |
+| LilyGo T-CAN485 | ESP32 TWAI + SN65HVD230 | — | 已测试 |
 
-## Build & Flash
+## 构建与刷写
 
-Use PlatformIO to build and flash. Select your board environment and configure the vehicle variant in `platformio.ini` build flags.
+使用 PlatformIO 进行构建和刷写。根据你的开发板选择环境，并在 `platformio.ini` 的 build flags 中配置车辆变体。
 
 ```bash
-# Build for Waveshare ESP32-S3
+# 为 Waveshare ESP32-S3 构建
 pio run -e waveshare_esp32s3_rs485_can
 
-# Build for generic ESP32
+# 为通用 ESP32 构建
 pio run -e esp32_twai
 
-# Flash over USB
+# 通过 USB 刷写
 pio run -e waveshare_esp32s3_rs485_can -t upload
 
-# Run unit tests (120 native tests)
+# 运行单元测试（120 个原生测试）
 pio test -e native
 ```
 
-### Build Flags
+### 构建参数
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `-DHW4` | On (esp32_twai) | Target HW4 vehicle handler |
-| `-DBYPASS_TLSSC_REQUIREMENT` | Off | Bypass Traffic Light & Stop Sign Control UI toggle |
-| `-DISA_SPEED_CHIME_SUPPRESS` | On | Enable ISA chime mute (HW4) |
-| `-DEMERGENCY_VEHICLE_DETECTION` | On | Enable emergency vehicle awareness (HW4) |
-| `-DENHANCED_AUTOPILOT` | On | Enable Enhanced Autopilot mode |
-| `-DNAG_KILLER` | Off | Compile Autosteer Nag Killer (needs X179 bus tap) |
-| `-DRUNTIME_HW_SWITCH` | On (S3) | Allow runtime Legacy/HW3/HW4 mode switching |
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `-DHW4` | 开启（esp32_twai） | 目标 HW4 车辆处理器 |
+| `-DBYPASS_TLSSC_REQUIREMENT` | 关闭 | 绕过 Traffic Light & Stop Sign Control UI 开关 |
+| `-DISA_SPEED_CHIME_SUPPRESS` | 开启 | 启用 ISA 提示音静音（HW4） |
+| `-DEMERGENCY_VEHICLE_DETECTION` | 开启 | 启用紧急车辆感知（HW4） |
+| `-DENHANCED_AUTOPILOT` | 开启 | 启用增强版 Autopilot |
+| `-DNAG_KILLER` | 关闭 | 编译 Autosteer Nag Killer（需要接入 X179 总线） |
+| `-DRUNTIME_HW_SWITCH` | 开启（S3） | 允许运行时切换 Legacy/HW3/HW4 模式 |
 
-## API Endpoints
+## API 端点
 
-The web server exposes 29 HTTP endpoints. All feature toggles accept `{"enabled": bool}` and return `{"ok": true}`. POST endpoints are rate-limited to 500 ms.
+Web 服务器暴露 29 个 HTTP 端点。所有功能开关都接受 `{"enabled": bool}` 并返回 `{"ok": true}`。所有 POST 端点都限制为 500 ms 一次。
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/` | Web UI (single-page HTML) |
-| GET | `/api/status` | Full system status JSON (features, CAN stats, logs) |
-| GET | `/api/can-live` | Live CAN signals |
-| GET | `/api/smart-offset` | Smart offset rules and current percentage |
-| GET | `/api/preheat/status` | Preheat state (active, temps, elapsed) |
-| GET | `/api/can-log/status` | CAN monitor buffer status |
-| GET | `/api/can-log/dump` | Binary CAN log download (chunked) |
-| GET | `/api/drive-data/status` | Drive data recording status |
-| GET | `/api/drive-data/csv` | Drive data CSV download |
-| POST | `/api/bypass-tlssc` | Toggle Bypass TLSSC |
-| POST | `/api/isa-speed-chime-suppress` | Toggle ISA chime suppress |
-| POST | `/api/emergency-vehicle-detection` | Toggle emergency vehicle detection |
-| POST | `/api/enhanced-autopilot` | Toggle Enhanced Autopilot |
-| POST | `/api/nag-killer` | Toggle Autosteer Nag Killer |
-| POST | `/api/china-mode` | Toggle China mode |
-| POST | `/api/hw-mode` | Switch hardware mode (reboot required) |
-| POST | `/api/profile-mode-auto` | Toggle auto speed profile |
-| POST | `/api/speed-profile` | Set manual speed profile (0–4) |
-| POST | `/api/speed-offset` | Set manual speed offset |
-| POST | `/api/smart-offset` | Configure smart offset rules |
-| POST | `/api/preheat` | Toggle battery preheat |
-| POST | `/api/preheat/config` | Set preheat auto-stop thresholds |
-| POST | `/api/wifi` | Save WiFi STA credentials (triggers reboot) |
-| POST | `/api/ota` | Upload firmware binary (supports MD5 via header) |
-| POST | `/api/enable-print` | Toggle serial console logging |
-| POST | `/api/drive-data/toggle` | Start/stop drive data recording |
-| POST | `/api/drive-data/clear` | Clear drive data buffer |
-| POST | `/api/can-log/start` | Start CAN monitor logging |
-| POST | `/api/can-log/stop` | Stop CAN monitor logging |
-| POST | `/api/can-log/clear` | Clear CAN monitor buffer |
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/` | Web 界面（单页 HTML） |
+| GET | `/api/status` | 完整系统状态 JSON（功能、CAN 统计、日志） |
+| GET | `/api/can-live` | 实时 CAN 信号 |
+| GET | `/api/smart-offset` | 智能偏移规则和当前百分比 |
+| GET | `/api/preheat/status` | 预热状态（是否激活、温度、运行时长） |
+| GET | `/api/can-log/status` | CAN 监控缓冲区状态 |
+| GET | `/api/can-log/dump` | 二进制 CAN 日志下载（分块传输） |
+| GET | `/api/drive-data/status` | 驾驶数据记录状态 |
+| GET | `/api/drive-data/csv` | 驾驶数据 CSV 下载 |
+| POST | `/api/bypass-tlssc` | 切换 Bypass TLSSC |
+| POST | `/api/isa-speed-chime-suppress` | 切换 ISA 提示音抑制 |
+| POST | `/api/emergency-vehicle-detection` | 切换紧急车辆检测 |
+| POST | `/api/enhanced-autopilot` | 切换增强版 Autopilot |
+| POST | `/api/nag-killer` | 切换 Autosteer Nag Killer |
+| POST | `/api/china-mode` | 切换中国模式 |
+| POST | `/api/hw-mode` | 切换硬件模式（需要重启） |
+| POST | `/api/profile-mode-auto` | 切换自动速度档位 |
+| POST | `/api/speed-profile` | 设置手动速度档位（0–4） |
+| POST | `/api/speed-offset` | 设置手动速度偏移 |
+| POST | `/api/smart-offset` | 配置智能偏移规则 |
+| POST | `/api/preheat` | 切换电池预热 |
+| POST | `/api/preheat/config` | 设置预热自动停止阈值 |
+| POST | `/api/wifi` | 保存 WiFi STA 凭据（触发重启） |
+| POST | `/api/ota` | 上传固件二进制（支持通过请求头传入 MD5） |
+| POST | `/api/enable-print` | 切换串口日志输出 |
+| POST | `/api/drive-data/toggle` | 开始/停止驾驶数据记录 |
+| POST | `/api/drive-data/clear` | 清空驾驶数据缓冲区 |
+| POST | `/api/can-log/start` | 开始 CAN 监控日志 |
+| POST | `/api/can-log/stop` | 停止 CAN 监控日志 |
+| POST | `/api/can-log/clear` | 清空 CAN 监控缓冲区 |
 
-## NVS Persistence
+## NVS 持久化
 
-All feature toggles, speed offset settings, smart offset rules, WiFi credentials, and hardware mode are persisted to ESP32 NVS flash. Settings survive reboots and power cycles. The firmware detects NVS corruption on boot and auto-recovers by erasing and reinitializing to defaults.
+所有功能开关、速度偏移设置、智能偏移规则、WiFi 凭据和硬件模式都会持久化到 ESP32 NVS Flash。设置会在重启和断电后保留。固件在启动时会检测 NVS 损坏，并通过擦除并重新初始化恢复到默认值。
 
-**Exception:** Battery preheat is intentionally NOT persisted — it must be manually re-enabled after each reboot for safety.
+**例外：** 电池预热故意不持久化 —— 为了安全，重启后必须手动重新开启。
 
-## Versioning
+## 版本管理
 
-- The project version is tracked in [`VERSION`](VERSION) using Semantic Versioning.
-- Release notes are tracked in [`CHANGELOG.md`](CHANGELOG.md).
+- 项目版本记录在 [`VERSION`](VERSION) 中，采用语义化版本管理。
+- 发布说明记录在 [`CHANGELOG.md`](CHANGELOG.md) 中。
 
-## Third-Party Libraries
+## 第三方库
 
-This project depends on the following open-source libraries. Full license texts are in [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
+本项目依赖以下开源库。完整许可证文本见 [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES)。
 
-| Library | License | Copyright |
-|---------|---------|-----------|
-| [espressif/esp-idf](https://github.com/espressif/esp-idf) (TWAI driver) | Apache 2.0 | (c) 2015-2025 Espressif Systems (Shanghai) CO LTD |
+| 库 | 许可证 | 版权 |
+|----|--------|------|
+| [espressif/esp-idf](https://github.com/espressif/esp-idf)（TWAI 驱动） | Apache 2.0 | (c) 2015-2025 Espressif Systems (Shanghai) CO LTD |
 
-## License
+## 许可证
 
-This project is licensed under the **GNU General Public License v3.0** — see the [GPL-3.0 License](https://www.gnu.org/licenses/gpl-3.0.html) for details.
+本项目采用 **GNU General Public License v3.0** 许可，详见 [GPL-3.0 License](https://www.gnu.org/licenses/gpl-3.0.html)。
