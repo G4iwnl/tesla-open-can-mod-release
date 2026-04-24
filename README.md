@@ -19,7 +19,7 @@
 - 推荐所有用户升级至 1.8.2，修复了 1.8.0/1.8.1 中的关键缺陷
 - 升级后如果「手动偏移模式」开关残留为开启状态（旧版副作用），请手动关闭一次即可
 
-### 🚨 请勿将你的 Tesla 升级到 `2026.8.6`、`2026.2.9.x` 或 `2026.2.300`，以保留 FSD 功能 🚨
+### 🚨 版本支持说明：目前除 `2026.6.x` 版本未测试，其余版本全部支持 🚨
 
 <br>
 <hr>
@@ -70,7 +70,7 @@
 - Upgrade all users to 1.8.2; it fixes the critical issues from 1.8.0 and 1.8.1
 - If the old "manual offset mode" toggle is still latched on after upgrading, turn it off once manually
 
-### 🚨 Do not update your Tesla to `2026.8.6`, `2026.2.9.x`, or `2026.2.300` if you want to preserve FSD functionality 🚨
+### 🚨 Version support notice: all versions are supported except `2026.6.x`, which is currently untested 🚨
 
 <br>
 <hr>
