@@ -1,154 +1,154 @@
-# Security & Responsible Use
+# 보안 및 책임 있는 사용
 
-## Disclaimer
+## 면책 조항
 
-> **FSD is a premium Tesla feature and must be properly purchased or subscribed to.** This project intercepts and modifies UI configuration frames at the CAN bus level. It does not bypass any cryptographic entitlement check on Tesla's servers, and using it without an active subscription is a violation of Tesla's Terms of Service.
+> **FSD는 Tesla의 유료 기능으로, 반드시 정상적으로 구매하거나 구독해야 합니다.** 이 프로젝트는 CAN 버스 수준에서 UI 구성 프레임을 가로채고 수정합니다. Tesla 서버의 암호화 권한 확인을 우회하지 않으며, 유효한 구독 없이 사용하는 것은 Tesla 이용 약관을 위반하는 행위입니다.
 
-> **Modifying CAN bus messages can cause dangerous behaviour or permanently damage your vehicle.** The CAN bus carries braking, steering, airbag, and powertrain control signals. A malformed or out-of-spec frame can have serious physical consequences.
+> **CAN 버스 메시지를 수정하면 위험한 동작을 유발하거나 차량을 영구적으로 손상시킬 수 있습니다.** CAN 버스는 제동, 조향, 에어백, 파워트레인 제어 신호를 전달합니다. 형식이 잘못된 프레임은 심각한 물리적 결과를 초래할 수 있습니다.
 
-> **Tesla has begun issuing VIN-level bans (April 2026).** Affected vehicles lose the TLSSC toggle silently — no OTA update, no warning. The ban persists across account transfers, FSD re-subscriptions, and software reinstalls. CAN injection cannot override a VIN-level ban. Non-FSD features (nag killer, battery dashboard, diagnostics) are not affected.
+> **Tesla는 2026년 4월부터 VIN 단위 차단을 시행하기 시작했습니다.** 차단된 차량은 OTA 업데이트나 경고 없이 TLSSC 토글이 사라집니다. 이 차단은 계정 이전, FSD 재구독, 소프트웨어 재설치 후에도 유지됩니다. CAN 주입으로는 VIN 단위 차단을 재정의할 수 없습니다. FSD가 아닌 기능(nag killer, 배터리 대시보드, 진단)은 영향을 받지 않습니다.
 
-This project is published for testing, research, and educational purposes only. It is intended for use on **private property** and off public roads unless you have your own legal opinion that operating it on a public road is permitted in your jurisdiction.
+이 프로젝트는 테스트, 연구 및 교육 목적으로만 공개되었습니다. 귀하의 관할권에서 공공 도로 운행이 법적으로 허용된다는 법률적 의견이 없는 한, **사유지** 및 공공 도로 이외의 장소에서만 사용하는 것을 목적으로 합니다.
 
-The authors and contributors accept no responsibility for:
+저자 및 기여자는 다음에 대한 일체의 책임을 지지 않습니다:
 
-- Damage to your vehicle, including warranty voiding
-- Personal injury or property damage
-- Tesla account suspension or service revocation
-- Violation of road traffic regulations in your country
-- Civil or criminal liability arising from any of the above
+- 보증 무효화를 포함한 차량 손상
+- 부상 또는 재산 피해
+- Tesla 계정 정지 또는 서비스 해지
+- 해당 국가 도로 교통 법규 위반
+- 위의 사항으로 인한 민사 또는 형사적 책임
 
-## Reporting a Security Issue
+## 보안 문제 신고
 
-If you find:
+다음을 발견한 경우:
 
-- A way for this project to corrupt or destabilize a CAN bus beyond what the documented behaviour does
-- A buffer overflow, out-of-bounds access, or memory corruption in any firmware code
-- A subtle frame interaction that could cascade into a vehicle safety fault
-- A vulnerability in the web server (e.g. injection, authentication bypass, denial of service)
+- 이 프로젝트가 문서화된 동작을 넘어 CAN 버스를 손상시키거나 불안정하게 만드는 방법
+- 펌웨어 코드의 버퍼 오버플로우, 범위 초과 접근, 또는 메모리 손상
+- 차량 안전 결함으로 이어질 수 있는 프레임 상호작용
+- 웹 서버의 취약점 (예: 인젝션, 인증 우회, 서비스 거부)
 
-**Please do not open a public GitHub issue.** Email the maintainer privately with the subject `[security] tesla-open-can-mod` and describe the issue, the reproduction steps, and the affected version. We will respond within a few days and credit you in the patch release notes if you'd like.
+**공개 GitHub 이슈를 열지 마십시오.** 제목 `[security] tesla-open-can-mod`로 관리자에게 개인적으로 이메일을 보내어 문제, 재현 단계, 영향받는 버전을 설명해 주세요. 며칠 내에 응답하겠으며, 원하신다면 패치 릴리스 노트에 이름을 기재하겠습니다.
 
-For non-security bugs, the regular [issue tracker](https://github.com/ylovex75/tesla-open-can-mod-release/issues) is fine.
+보안과 무관한 버그는 일반 [이슈 트래커](https://github.com/ylovex75/tesla-open-can-mod-release/issues)를 이용해 주세요.
 
-## What This Project Writes to the CAN Bus
+## 이 프로젝트가 CAN 버스에 쓰는 내용
 
-The TX surface is intentionally narrow. Every `twai_transmit()` call site is documented below:
+TX 표면은 의도적으로 좁게 제한되어 있습니다. 모든 `twai_transmit()` 호출 지점은 아래에 문서화되어 있습니다:
 
-| CAN ID | Frame Name | What Is Modified | Condition |
+| CAN ID | 프레임 이름 | 수정 내용 | 조건 |
 |--------|-----------|------------------|-----------|
-| `0x3FD` | UI_autopilotControl | Bits 19, 46, 47, 59, 60 + speed offset + profile | HW3/HW4 handler active, frame received from Gateway |
-| `0x3EE` | UI_autopilotControl | Bits 19, 46 + profile | Legacy handler active, frame received from Gateway |
-| `0x313` | TrackModeRequest | Byte 0 bits 0-1, checksum | HW3 handler active, frame received |
-| `0x370` | EPAS3P_sysStatus | handsOnLevel=1, torque=1.80 Nm, counter+1, checksum | Nag Killer enabled AND handsOnLevel=0 detected |
-| `0x399` | DAS_status | Byte 1 bit 5, checksum | ISA chime suppress enabled, frame received |
-| `0x082` | UI_tripPlanning | Byte 0 = 0x05 (full frame injected) | Preheat enabled, 500 ms interval, single-shot TX |
+| `0x3FD` | UI_autopilotControl | 비트 19, 46, 47, 59, 60 + 속도 오프셋 + 프로파일 | HW3/HW4 핸들러 활성화, 게이트웨이에서 프레임 수신 시 |
+| `0x3EE` | UI_autopilotControl | 비트 19, 46 + 프로파일 | Legacy 핸들러 활성화, 게이트웨이에서 프레임 수신 시 |
+| `0x313` | TrackModeRequest | 바이트 0 비트 0-1, 체크섬 | HW3 핸들러 활성화, 프레임 수신 시 |
+| `0x370` | EPAS3P_sysStatus | handsOnLevel=1, torque=1.80 Nm, counter+1, 체크섬 | Nag Killer 활성화 AND handsOnLevel=0 감지 시 |
+| `0x399` | DAS_status | 바이트 1 비트 5, 체크섬 | ISA 차임 억제 활성화, 프레임 수신 시 |
+| `0x082` | UI_tripPlanning | 바이트 0 = 0x05 (전체 프레임 주입) | 예열 활성화, 500ms 간격, 단발성 TX |
 
-**This project does NOT write to:**
+**이 프로젝트가 쓰지 않는 항목:**
 
-- Brake controllers (`0x244` IBST_status and related)
-- Steering controllers (`0x129` SteeringAngleSensor)
-- Powertrain / motor (`0x118` DI_systemStatus, `0x132` BMS, `0x214` DI_torque)
-- ESP / stability control (`0x2A1` ESP_status)
-- Door / window / lock actuators (`0x102`, `0x3E3`)
-- Transmission / gear selection (no known writable signal on Party CAN)
-- Anything on Chassis CAN — we only sit on Vehicle / Party CAN (Bus 0)
+- 제동 컨트롤러 (`0x244` IBST_status 등)
+- 조향 컨트롤러 (`0x129` SteeringAngleSensor)
+- 파워트레인 / 모터 (`0x118` DI_systemStatus, `0x132` BMS, `0x214` DI_torque)
+- ESP / 안정성 제어 (`0x2A1` ESP_status)
+- 도어 / 창문 / 잠금 액추에이터 (`0x102`, `0x3E3`)
+- 변속기 / 기어 선택 (Party CAN에 알려진 쓰기 가능 신호 없음)
+- 섀시 CAN의 모든 항목 — 우리는 Vehicle / Party CAN (Bus 0)에만 존재합니다
 
-The BMS, speed, OTA-detect, and follow-distance handlers are **read-only parsers**. They update internal state but never call `twai_transmit()`.
+BMS, 속도, OTA 감지, 추종 거리 핸들러는 **읽기 전용 파서**입니다. 내부 상태를 업데이트하지만 `twai_transmit()`을 호출하지 않습니다.
 
-## Safety Mechanisms
+## 안전 메커니즘
 
-### OTA Vehicle Protection
+### OTA 차량 보호
 
-When the firmware detects a vehicle OTA update in progress (`GTW_carState` 0x318, bits 6-7 > 0), **all CAN frame modifications and injections are paused**. This prevents interference with the vehicle's own firmware update process. Modifications resume automatically when the OTA completes. The event is logged to the ring buffer.
+펌웨어가 차량 OTA 업데이트 진행을 감지하면 (`GTW_carState` 0x318, 비트 6-7 > 0), **모든 CAN 프레임 수정 및 주입이 일시 중지됩니다**. 이는 차량 자체 펌웨어 업데이트 과정과의 간섭을 방지합니다. OTA 완료 후 수정이 자동으로 재개됩니다. 이벤트는 링 버퍼에 기록됩니다.
 
-### Preheat Safeguards
+### 예열 안전장치
 
-Battery preconditioning injection is the only fully-synthetic frame this project sends. Multiple safeguards exist:
+배터리 사전 컨디셔닝 주입은 이 프로젝트가 전송하는 유일한 완전 합성 프레임입니다. 다중 안전장치가 존재합니다:
 
-- **Auto-stop by temperature:** Configurable threshold (-5°C to 25°C, default 10°C). Stops when `bmsTempMin >= threshold`.
-- **Auto-stop by duration:** Configurable maximum (10–60 min, default 30 min).
-- **No NVS persistence:** Preheat is always OFF on reboot. The user must manually re-enable it, preventing accidental silent re-activation.
-- **Single-shot TX:** Frames use `TWAI_MSG_FLAG_SS` to prevent retry storms if the bus does not ACK.
-- **OTA interlock:** Preheat injection is paused during vehicle OTA (see above).
+- **온도에 의한 자동 정지:** 구성 가능한 임계값 (-5°C ~ 25°C, 기본값 10°C). `bmsTempMin >= threshold`일 때 정지합니다.
+- **시간에 의한 자동 정지:** 구성 가능한 최대값 (10~60분, 기본값 30분).
+- **NVS 비영속성:** 예열은 항상 재부팅 시 OFF입니다. 사용자가 수동으로 다시 활성화해야 합니다.
+- **단발성 TX:** 프레임은 `TWAI_MSG_FLAG_SS`를 사용하여 버스가 ACK하지 않을 경우 재시도 폭풍을 방지합니다.
+- **OTA 인터록:** 차량 OTA 중 예열 주입이 일시 중지됩니다 (위 참조).
 
-### Speed Offset Safety
+### 속도 오프셋 안전
 
-- A confirmation modal is shown on the first non-zero speed offset to warn the user that offset causes the vehicle to exceed posted speed limits.
-- Manual and Smart modes are visually separated in the UI to prevent confusion.
-- Smart offset rules are capped at 8 entries and auto-sorted by speed threshold.
+- 처음 비제로 속도 오프셋 설정 시 확인 모달이 표시되어 오프셋이 차량을 제한 속도 이상으로 달리게 한다고 경고합니다.
+- 수동 및 스마트 모드는 UI에서 시각적으로 분리되어 혼동을 방지합니다.
+- 스마트 오프셋 규칙은 최대 8개로 제한되며 속도 임계값에 따라 자동 정렬됩니다.
 
-### NVS Corruption Recovery
+### NVS 손상 복구
 
-On boot, NVS initialization checks for `ESP_ERR_NVS_NO_FREE_PAGES` and `ESP_ERR_NVS_NEW_VERSION_FOUND`. If either is detected, the NVS partition is erased and reinitialized with default values. The event is logged.
+부팅 시 NVS 초기화는 `ESP_ERR_NVS_NO_FREE_PAGES` 및 `ESP_ERR_NVS_NEW_VERSION_FOUND`를 확인합니다. 둘 중 하나가 감지되면 NVS 파티션을 지우고 기본값으로 재초기화합니다. 이벤트가 기록됩니다.
 
-### CAN Bus Isolation
+### CAN 버스 격리
 
-- The firmware only accesses the **Party CAN bus** (Bus 0) via OBD-II or X179 connector. It has no physical access to Chassis CAN, Powertrain CAN, or the Ethernet backbone.
-- All frame modifications are read-modify-retransmit on existing frames from the Gateway. The firmware does not generate arbitrary CAN IDs.
-- The only exception is `0x082` (preheat injection), which is a known Tesla frame format sent with single-shot flag.
+- 펌웨어는 OBD-II 또는 X179 커넥터를 통해 **Party CAN 버스** (Bus 0)에만 접근합니다. 섀시 CAN, 파워트레인 CAN, 이더넷 백본에 물리적으로 접근하지 않습니다.
+- 모든 프레임 수정은 게이트웨이의 기존 프레임을 읽어 수정 후 재전송하는 방식입니다. 임의적인 CAN ID를 생성하지 않습니다.
+- 유일한 예외는 `0x082` (예열 주입)이며, 이는 단발성 플래그와 함께 전송되는 알려진 Tesla 프레임 형식입니다.
 
-## Web Server Security
+## 웹 서버 보안
 
-### Network Exposure
+### 네트워크 노출
 
-- The web server listens on port 80 (HTTP) within the ESP32's WiFi AP network (`192.168.4.x`).
-- Default AP credentials: SSID `TeslaCAN`, password `12345678` (WPA2).
-- **Change the WiFi password** if you operate in an environment where others could connect to the AP.
-- The web server is not exposed to the internet unless you explicitly bridge the ESP32's network to a WAN.
+- 웹 서버는 ESP32 WiFi AP 네트워크 (`192.168.4.x`) 내에서 포트 80 (HTTP)에서 수신 대기합니다.
+- 기본 AP 자격 증명: SSID `TeslaCAN`, 비밀번호 `12345678` (WPA2).
+- AP에 연결할 수 있는 환경에서 운용하는 경우 **WiFi 비밀번호를 변경하세요**.
+- ESP32 네트워크를 WAN에 명시적으로 브리지하지 않는 한 웹 서버는 인터넷에 노출되지 않습니다.
 
-### Rate Limiting
+### 속도 제한
 
-All POST endpoints enforce a 500 ms minimum interval. Requests within the cooldown return HTTP 429. This prevents:
+모든 POST 엔드포인트는 500ms 최소 간격을 적용합니다. 쿨다운 내의 요청은 HTTP 429를 반환합니다. 이는 다음을 방지합니다:
 
-- Accidental rapid toggling of safety-critical features
-- Simple denial-of-service against the embedded web server
+- 안전 관련 기능의 우발적인 빠른 토글
+- 임베디드 웹 서버에 대한 단순 서비스 거부
 
-### Input Validation
+### 입력 검증
 
-- WiFi SSID: max 32 characters. Password: min 8, max 63 characters.
-- Speed offset values are clamped to valid CAN ranges (0–200 in steps of 4).
-- Smart offset rules are validated (maxSpeed > 0, offsetPct 0–100, max 8 rules).
-- Hardware mode is clamped to 0–2 (Legacy/HW3/HW4).
-- OTA upload validates firmware binary integrity; optional MD5 checksum via `X-Firmware-MD5` header.
+- WiFi SSID: 최대 32자. 비밀번호: 최소 8자, 최대 63자.
+- 속도 오프셋 값은 유효한 CAN 범위 (0-200, 4 단위)로 제한됩니다.
+- 스마트 오프셋 규칙은 검증됩니다 (maxSpeed > 0, offsetPct 0-100, 최대 8개 규칙).
+- 하드웨어 모드는 0-2로 제한됩니다 (Legacy/HW3/HW4).
+- OTA 업로드는 펌웨어 바이너리 무결성을 검증합니다; `X-Firmware-MD5` 헤더를 통한 선택적 MD5 체크섬.
 
-### No Authentication
+### 인증 없음
 
-The web server does **not** implement authentication. Anyone connected to the WiFi AP has full control. This is acceptable for a single-user embedded device on a private AP, but be aware:
+웹 서버는 인증을 구현하지 **않습니다**. WiFi AP에 연결된 모든 사람은 완전한 제어권을 가집니다. 이는 사유 AP의 단일 사용자 임베디드 장치에는 허용 가능하지만 주의하세요:
 
-- Do not connect the ESP32 to a shared or public WiFi network in STA mode if you have not configured additional network-level access control.
-- Do not expose port 80 to the internet.
+- 추가 네트워크 수준 접근 제어를 설정하지 않은 경우 STA 모드에서 ESP32를 공유 또는 공용 WiFi 네트워크에 연결하지 마세요.
+- 인터넷에 포트 80을 노출하지 마세요.
 
-## Detection Risk
+## 탐지 위험
 
-Tesla's telemetry can detect anomalous CAN frame patterns. Known detection vectors include:
+Tesla의 텔레메트리는 비정상적인 CAN 프레임 패턴을 감지할 수 있습니다. 알려진 탐지 벡터:
 
-1. **Constant torque signature** — The nag killer echo uses a fixed 1.80 Nm torque value. A constant `torsionBarTorque` for extended periods is statistically impossible from a real hand and may be flagged.
-2. **Bit 46 injection on 0x3FD** — The FSD enable bit is the primary modification. Tesla's server-side analysis can identify this pattern.
-3. **Frame timing anomalies** — Retransmitted frames have slightly different timing than originals, which telemetry may detect.
+1. **일정한 토크 서명** — nag killer 에코는 고정된 1.80 Nm 토크 값을 사용합니다. 장시간 일정한 `torsionBarTorque`는 실제 손에서는 통계적으로 불가능하며 플래그 될 수 있습니다.
+2. **0x3FD에 비트 46 주입** — FSD 활성화 비트가 주요 수정 사항입니다. Tesla의 서버 측 분석은 이 패턴을 식별할 수 있습니다.
+3. **프레임 타이밍 이상** — 재전송된 프레임은 원본과 약간 다른 타이밍을 가지며, 텔레메트리가 감지할 수 있습니다.
 
-### Risk Mitigation
+### 위험 완화
 
-- **Pull the SIM card** before use (Model 3/Y: behind the glovebox). This prevents real-time telemetry upload.
-- **Disable WiFi** on the vehicle (Settings → WiFi → Forget all networks).
-- **Note:** Even with SIM pulled, Tesla may flag VINs retroactively from historical telemetry data. There is no guaranteed way to avoid detection.
-- **Non-FSD features** (battery dashboard, speed display, drive data recording) operate in read-only mode and do not modify CAN frames — they carry no detection risk.
+- 사용 전 **SIM 카드를 제거하세요** (Model 3/Y: 글러브박스 뒤). 실시간 텔레메트리 업로드를 방지합니다.
+- 차량의 **WiFi를 비활성화하세요** (설정 → WiFi → 모든 네트워크 삭제).
+- **참고:** SIM을 제거해도 Tesla는 과거 텔레메트리 데이터에서 소급하여 VIN을 플래그 할 수 있습니다. 탐지를 완전히 피할 수 있는 방법은 없습니다.
+- **FSD가 아닌 기능** (배터리 대시보드, 속도 표시, 드라이브 데이터 기록)은 읽기 전용 모드로 작동하며 CAN 프레임을 수정하지 않아 탐지 위험이 없습니다.
 
-## Recommended Pre-Flight
+## 권장 사전 점검
 
-Before each session:
+각 세션 전:
 
-1. Pull the SIM card from the vehicle
-2. Disable WiFi on the vehicle
-3. Power on the device, verify CAN RX counter is incrementing (confirms wiring)
-4. Check the web dashboard for sensible signal readings (speed, SOC, gear)
-5. Enable features as needed
+1. 차량에서 SIM 카드를 제거하세요
+2. 차량 WiFi를 비활성화하세요
+3. 장치를 켜고 CAN RX 카운터가 증가하는지 확인하세요 (배선 확인)
+4. 웹 대시보드에서 합리적인 신호 수치를 확인하세요 (속도, SOC, 기어)
+5. 필요에 따라 기능을 활성화하세요
 
-After each session:
+각 세션 후:
 
-- Disable active features or unplug the device
-- Re-insert SIM and re-enable WiFi if needed for navigation / streaming
+- 활성 기능을 비활성화하거나 장치를 분리하세요
+- 내비게이션/스트리밍이 필요한 경우 SIM을 재삽입하고 WiFi를 다시 활성화하세요
 
-## License
+## 라이선스
 
-This project is licensed under GPL-3.0. See [LICENSE](LICENSE) for details.
+이 프로젝트는 GPL-3.0 라이선스로 제공됩니다. 자세한 내용은 [LICENSE](LICENSE)를 참고하세요.

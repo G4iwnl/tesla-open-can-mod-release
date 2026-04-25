@@ -1,37 +1,29 @@
-# Contributor Covenant Code of Conduct
+# 기여자 행동 강령
 
-## Our Pledge
+## 우리의 약속
 
-We as members, contributors, and leaders pledge to make participation in our
-community a harassment-free experience for everyone, regardless of age, body
-size, visible or invisible disability, ethnicity, sex characteristics, gender
-identity and expression, level of experience, education, socio-economic status,
-nationality, personal appearance, race, religion, or sexual identity and
-orientation.
+우리는 구성원, 기여자, 리더로서 나이, 체형, 가시적 또는 비가시적 장애, 민족성, 성적 특성, 성별 정체성 및 표현, 경험 수준, 교육, 사회경제적 지위, 국적, 외모, 인종, 종교, 또는 성적 정체성과 지향에 관계없이 모든 사람에게 괴롭힘 없는 커뮤니티 참여 경험을 보장할 것을 약속합니다.
 
-## Our Standards
+## 우리의 기준
 
-Examples of behavior that contributes to a positive environment:
+긍정적인 환경을 조성하는 행동의 예:
 
-- Being respectful of differing viewpoints and experiences
-- Giving and gracefully accepting constructive feedback
-- Focusing on what is best for the community
-- Showing empathy towards other community members
+- 다양한 관점과 경험을 존중하기
+- 건설적인 피드백을 주고 우아하게 받아들이기
+- 커뮤니티에 가장 좋은 것에 집중하기
+- 다른 커뮤니티 구성원들에 대한 공감 표현하기
 
-Examples of unacceptable behavior:
+용납될 수 없는 행동의 예:
 
-- Trolling, insulting or derogatory comments, and personal attacks
-- Public or private harassment
-- Publishing others' private information without explicit permission
-- Other conduct which could reasonably be considered inappropriate in a professional setting
+- 트롤링, 모욕적이거나 비하적인 댓글, 인신 공격
+- 공개적 또는 사적 괴롭힘
+- 명시적인 허가 없이 타인의 개인 정보 공개
+- 직업 환경에서 부적절하다고 합리적으로 간주될 수 있는 기타 행동
 
-## Enforcement
+## 집행
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the project maintainer. All complaints will be reviewed and
-investigated and will result in a response that is deemed necessary and
-appropriate to the circumstances.
+욕설, 괴롭힘, 또는 기타 용납할 수 없는 행동이 발생한 경우 프로젝트 관리자에게 신고할 수 있습니다. 모든 민원은 검토 및 조사되며, 상황에 따라 필요하고 적절한 조치로 응답할 것입니다.
 
-## Attribution
+## 출처
 
-This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org/), version 2.1.
+이 행동 강령은 [Contributor Covenant](https://www.contributor-covenant.org/) 버전 2.1에서 채택되었습니다.

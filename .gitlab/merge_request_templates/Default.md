@@ -1,19 +1,19 @@
-## Summary
+## 요약
 
-<!-- Brief description of what this MR does -->
+<!-- 이 MR이 무엇을 하는지 간략히 설명 -->
 
-## Changes
+## 변경 사항
 
-<!-- List the key changes -->
+<!-- 핵심 변경 사항 나열 -->
 
 -
 
-## Checklist
+## 체크리스트
 
-- [ ] Code compiles for all affected board environments
-- [ ] Tests pass (`pio test -e native`)
-- [ ] Linter passes (`clang-format --dry-run --Werror --style=file`)
-- [ ] `CHANGELOG.md` updated for relevant user-facing or tooling changes
-- [ ] Documentation updated in `docs-site/docs/` (if user-facing change)
-- [ ] `CHANGELOG.md` updated under `[Unreleased]` (if user-facing or behavioral change)
-- [ ] Firmware compatibility notes updated (if behavior changes per firmware version)
+- [ ] 영향을 받는 모든 보드 환경에서 코드 컴파일 통과
+- [ ] 테스트 통과 (`pio test -e native`)
+- [ ] 린터 통과 (`clang-format --dry-run --Werror --style=file`)
+- [ ] 사용자 관련 또는 도구 관련 변경 시 `CHANGELOG.md` 업데이트
+- [ ] 사용자 관련 변경 시 `docs-site/docs/`의 문서 업데이트
+- [ ] 사용자 관련 또는 동작 변경 시 `[Unreleased]` 아래 `CHANGELOG.md` 업데이트
+- [ ] 버전별 동작 변경 시 펌웨어 호환성 주석 업데이트
