@@ -5,50 +5,50 @@ slug: /intro
 
 # Tesla Open CAN Mod
 
-An open-source general-purpose CAN bus modification tool for Tesla vehicles. While FSD enablement was the starting point, the goal is to expose and control everything accessible via CAN — as a fully open project.
+Tesla 차량을 위한 오픈소스 범용 CAN 버스 수정 도구입니다. FSD 활성화가 시작점이었지만, 목표는 CAN을 통해 접근 가능한 모든 것을 완전히 오픈된 프로젝트로 제어하는 것입니다.
 
-Some sellers charge up to 500 EUR for a solution like this. The hardware costs around 20 EUR, and even with labor factored in, a fair price is no more than 50 EUR. This project exists so nobody has to overpay.
+이와 같은 솔루션에 최대 500 EUR를 요구하는 판매자도 있습니다. 하드웨어 비용은 약 20 EUR이며, 인건비를 고려해도 공정한 가격은 50 EUR를 넘지 않습니다. 이 프로젝트는 아무도 과금당하지 않도록 존재합니다.
 
-## What It Does
+## 기능
 
-This firmware runs on supported microcontroller boards with CAN bus support. It intercepts specific CAN bus messages to enable and configure Full Self-Driving (FSD).
+이 펌웨어는 CAN 버스를 지원하는 마이크로컨트롤러 보드에서 실행됩니다. 특정 CAN 버스 메시지를 가로채서 완전 자율 주행(FSD)을 활성화하고 구성합니다.
 
-### Core Function
+### 핵심 기능
 
-- Intercepts specific CAN bus messages
-- Re-transmits them onto the vehicle bus
+- 특정 CAN 버스 메시지 가로채기
+- 차량 버스에 재전송
 
-### FSD Activation Logic
+### FSD 활성화 로직
 
-- Listens for Autopilot-related CAN frames
-- Checks if "Traffic Light and Stop Sign Control" is enabled in the Autopilot settings
-- Uses this setting as a trigger for Full Self-Driving (FSD)
-- Adjusts the required bits in the CAN message to activate FSD
+- 오토파일럿 관련 CAN 프레임 수신 대기
+- 오토파일럿 설정에서 "신호등 및 정지 표지판 제어"가 활성화되어 있는지 확인
+- 이 설정을 완전 자율 주행(FSD) 트리거로 사용
+- CAN 메시지에서 FSD를 활성화하는 데 필요한 비트 조정
 
-### Additional Behavior
+### 추가 동작
 
-- Reads the follow-distance stalk setting
-- Maps it dynamically to a speed profile
-- Nag suppression — clears the hands-on-wheel nag bit
-- HW4: Enhanced Autopilot (optional)
-- HW4: Approaching Emergency Vehicle Detection
-- HW4: Actually Smart Summon (ASS) without EU restrictions
+- 추종 거리 스토크 설정 읽기
+- 동적으로 속도 프로파일에 매핑
+- Nag 억제 — 핸들 위 손 감지 nag 비트 제거
+- HW4: 향상된 오토파일럿 (선택 사항)
+- HW4: 긴급 차량 접근 감지
+- HW4: EU 규제 없는 실제 스마트 소환 (ASS)
 
-## Prerequisites
+## 사전 조건
 
-**You must have an active FSD package on the vehicle** — either purchased or subscribed. This board enables the FSD functionality on the CAN bus level, but the vehicle still needs a valid FSD entitlement from Tesla.
+**차량에 활성 FSD 패키지가 있어야 합니다** — 구매 또는 구독 방식 모두 가능합니다. 이 보드는 CAN 버스 수준에서 FSD 기능을 활성화하지만, 차량에는 여전히 Tesla의 유효한 FSD 권한이 필요합니다.
 
-:::danger Ban Warning
-Any attempt to bypass the purchase or subscription requirement for Full Self-Driving (FSD) will result in a permanent ban from Tesla services. FSD is a premium feature and must be properly purchased or subscribed to.
+:::danger 계정 차단 경고
+완전 자율 주행(FSD)의 구매 또는 구독 요건을 우회하려는 시도는 Tesla 서비스에서 영구적으로 차단되는 결과를 초래합니다. FSD는 프리미엄 기능으로 반드시 정상적으로 구매하거나 구독해야 합니다.
 :::
 
 :::warning
-This project is for testing and educational purposes only. Sending incorrect CAN bus messages to your vehicle can cause unexpected behavior, disable safety-critical systems, or permanently damage electronic components. The CAN bus controls everything from braking and steering to airbags — a malformed message can have serious consequences. If you don't fully understand what you're doing, **do not install this on your car**.
+이 프로젝트는 테스트 및 교육 목적으로만 사용됩니다. 차량에 잘못된 CAN 버스 메시지를 전송하면 예기치 않은 동작, 안전에 중요한 시스템 비활성화, 또는 전자 부품의 영구적인 손상을 일으킬 수 있습니다. CAN 버스는 제동, 조향에서 에어백까지 모든 것을 제어합니다 — 잘못된 형식의 메시지는 심각한 결과를 초래할 수 있습니다. 자신이 무엇을 하는지 완전히 이해하지 못한다면 **차량에 설치하지 마십시오**.
 :::
 
-## Next Steps
+## 다음 단계
 
-- **[Hardware Selection](/docs/getting-started/hardware-selection)** — Choose the right board for your vehicle
-- **[Installation](/docs/getting-started/installation)** — Wire your board to the car
-- **[Firmware Flash](/docs/getting-started/firmware-flash)** — Flash the firmware to your board
-- **[Configuration](/docs/getting-started/configuration)** — Configure board, vehicle, and features
+- **[하드웨어 선택](/docs/getting-started/hardware-selection)** — 차량에 맞는 보드 선택
+- **[설치](/docs/getting-started/installation)** — 보드를 차량에 배선
+- **[펌웨어 플래시](/docs/getting-started/firmware-flash)** — 보드에 펌웨어 플래시
+- **[설정](/docs/getting-started/configuration)** — 보드, 차량, 기능 설정

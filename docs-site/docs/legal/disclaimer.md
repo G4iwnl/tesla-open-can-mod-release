@@ -2,42 +2,42 @@
 sidebar_position: 1
 ---
 
-# Disclaimer
+# 면책 조항
 
-:::danger Ban Warning
-**Any attempt to bypass the purchase or subscription requirement for Full Self-Driving (FSD) will result in a permanent ban from Tesla services.**
+:::danger 계정 차단 경고
+**완전 자율 주행(FSD)의 구매 또는 구독 요건을 우회하려는 시도는 Tesla 서비스에서 영구적으로 차단되는 결과를 초래합니다.**
 
-**FSD is a premium feature and must be properly purchased or subscribed to.**
+**FSD는 프리미엄 기능으로 반드시 정상적으로 구매하거나 구독해야 합니다.**
 :::
 
-## Testing and Educational Use Only
+## 테스트 및 교육 목적 전용
 
-This project is for **testing and educational purposes only**. Sending incorrect CAN bus messages to your vehicle can cause unexpected behavior, disable safety-critical systems, or permanently damage electronic components. The CAN bus controls everything from braking and steering to airbags — a malformed message can have serious consequences.
+이 프로젝트는 **테스트 및 교육 목적으로만** 사용됩니다. 차량에 잘못된 CAN 버스 메시지를 전송하면 예기치 않은 동작, 안전에 중요한 시스템 비활성화, 또는 전자 부품의 영구적인 손상을 일으킬 수 있습니다. CAN 버스는 제동, 조향에서 에어백까지 모든 것을 제어합니다 — 잘못된 형식의 메시지는 심각한 결과를 초래할 수 있습니다.
 
-**If you don't fully understand what you're doing, do not install this on your car.**
+**자신이 무엇을 하는지 완전히 이해하지 못한다면 차량에 설치하지 마십시오.**
 
-## Use at Your Own Risk
+## 사용자 책임
 
-This project is intended for testing purposes only and for use on **private property**. Modifying CAN bus messages on a vehicle can lead to unexpected or dangerous behavior.
+이 프로젝트는 테스트 목적으로만 **사유지**에서 사용하기 위한 것입니다. 차량의 CAN 버스 메시지를 수정하면 예기치 않거나 위험한 동작을 일으킬 수 있습니다.
 
-The authors accept no responsibility for any damage to your vehicle, injury, or legal consequences resulting from the use of this software. This project may void your vehicle warranty and **may not comply with road safety regulations in your jurisdiction**.
+저자는 이 소프트웨어 사용으로 인한 차량 손상, 부상, 또는 법적 결과에 대해 어떠한 책임도 지지 않습니다. 이 프로젝트는 차량 보증을 무효화할 수 있으며 **귀하의 관할권의 도로 안전 규정을 준수하지 않을 수 있습니다**.
 
-For any use beyond private testing, you are responsible for complying with all applicable local laws and regulations.
+사유지 테스트 이외의 사용에 대해서는 적용 가능한 모든 지역 법률 및 규정을 준수할 책임은 귀하에게 있습니다.
 
-## Not an Official Tesla Product
+## Tesla 공식 제품 아님
 
-This project is **not affiliated with, endorsed by, or associated with Tesla, Inc.** in any way. "Tesla" is a registered trademark of Tesla, Inc. The use of the name is for identification purposes only.
+이 프로젝트는 **Tesla, Inc.와 어떠한 방식으로도 제휴, 보증, 또는 연관되어 있지 않습니다**. "Tesla"는 Tesla, Inc.의 등록 상표입니다. 이름의 사용은 식별 목적으로만 사용됩니다.
 
-## Safety
+## 안전
 
-Always keep your hands on the wheel and stay attentive while driving. No software modification can replace human attention and judgment.
+운전 중에는 항상 핸들에 손을 올리고 주의를 기울이세요. 어떤 소프트웨어 수정도 인간의 주의와 판단을 대체할 수 없습니다.
 
-## License
+## 라이선스
 
-This project is licensed under the **GNU General Public License v3.0**. This means:
+이 프로젝트는 **GNU General Public License v3.0** 하에 라이선스됩니다. 이는 다음을 의미합니다:
 
-- The software is provided **"AS IS"**, without warranty of any kind
-- You may use, modify, and distribute the software under the terms of the GPL-3.0
-- Any modifications must also be released under GPL-3.0
+- 소프트웨어는 어떠한 종류의 보증 없이 **"있는 그대로"** 제공됩니다
+- GPL-3.0 조건 하에 소프트웨어를 사용, 수정, 배포할 수 있습니다
+- 모든 수정 사항도 GPL-3.0 하에 공개되어야 합니다
 
-See the [full GPL-3.0 license text](https://www.gnu.org/licenses/gpl-3.0.html) for details.
+자세한 내용은 [전체 GPL-3.0 라이선스 텍스트](https://www.gnu.org/licenses/gpl-3.0.html)를 참고하세요.

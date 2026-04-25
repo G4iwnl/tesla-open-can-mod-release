@@ -2,83 +2,83 @@
 sidebar_position: 2.5
 ---
 
-# Wiring Guide: Legacy (Pre-2020) Tesla Model 3/Y
+# 배선 가이드: 레거시 (2020년 이전) Tesla Model 3/Y
 
-For older Tesla Model 3/Y vehicles (2020 and earlier), there are different connector options available. This guide covers the X652 and X052 connectors.
+구형 Tesla Model 3/Y 차량 (2020년 이전)에서는 다양한 커넥터 옵션을 사용할 수 있습니다. 이 가이드는 X652와 X052 커넥터를 다룹니다.
 
-## Finding the Right Connector for Your Car
+## 차량에 맞는 커넥터 찾기
 
-Please use the official Tesla documentation for reference: https://service.tesla.com/docs/Model3/ElectricalReference/
+참고를 위해 공식 Tesla 문서를 사용하세요: https://service.tesla.com/docs/Model3/ElectricalReference/
 
-## Option 1: X652 Connector (Easiest)
+## 옵션 1: X652 커넥터 (가장 쉬움)
 
-The X652 connector is the easiest to use if your car has it.
+X652 커넥터는 차량에 있다면 사용하기 가장 쉽습니다.
 
-### Locating X652
+### X652 찾기
 
-Lift the passenger seat footwell all the way up and look under the seat:
+보조석 발판을 완전히 들어올리고 시트 아래를 보세요:
 
-![X625 location](/img/x625-image.png)
+![X625 위치](/img/x625-image.png)
 
-### Important: Check for Black Box
+### 중요: 검은색 박스 확인
 
-**Do NOT use the X652 if it is connected to a black plastic box.** Unplugging it will trigger a persistent passenger seat warning.
+**검은색 플라스틱 박스에 연결되어 있는 경우 X652를 사용하지 마세요.** 분리하면 보조석 경고가 지속적으로 켜집니다.
 
-If there is no black box, you can safely use this connector.
+검은색 박스가 없으면 이 커넥터를 안전하게 사용할 수 있습니다.
 
-### Wiring X652
+### X652 배선
 
-![X625 pins](/img/x625-pins.png)
+![X625 핀](/img/x625-pins.png)
 
-| Pin | Signal |
+| 핀 | 신호 |
 |---|---|
 | 1 | CAN-L |
 | 2 | CAN-H |
-| 3 | Ground |
-| 4 | Power (12V) |
+| 3 | 접지 |
+| 4 | 전원 (12V) |
 
-You'll need to make 2 custom cables using:
-- [936119 connectors](https://aliexpress.com/w/wholesale-936119%2525252d1.html) for CAN bus
-- [1355717 connectors](https://aliexpress.com/w/wholesale-1355717%2525252d1.html)
-- [Power connector](https://aliexpress.com/item/1005008884473620.html)
+다음을 사용하여 케이블 2개를 직접 만들어야 합니다:
+- CAN 버스용 [936119 커넥터](https://aliexpress.com/w/wholesale-936119%2525252d1.html)
+- [1355717 커넥터](https://aliexpress.com/w/wholesale-1355717%2525252d1.html)
+- [전원 커넥터](https://aliexpress.com/item/1005008884473620.html)
 
-## Option 2: X052 Connector
+## 옵션 2: X052 커넥터
 
-If X652 is not available, you can use the X052 connector located on the right side of the car.
+X652를 사용할 수 없는 경우 차량 오른쪽에 위치한 X052 커넥터를 사용할 수 있습니다.
 
-### Locating X052
+### X052 찾기
 
-![Right side car model 3](/img/rightsidecarmodel3.png)
+![차량 오른쪽 Model 3](/img/rightsidecarmodel3.png)
 
-There is 1 plastic trim piece that needs to be removed:
-1. Pull the trim up near the bottom
-2. Lift it slowly toward the dashboard
-3. Unclip the plastic screw by hand
+제거해야 할 플라스틱 트림이 1개 있습니다:
+1. 아래쪽 근처에서 트림을 위로 당기세요
+2. 천천히 대시보드 방향으로 들어올리세요
+3. 손으로 플라스틱 나사를 분리하세요
 
-You will find the X052 connector inside:
+내부에서 X052 커넥터를 찾을 수 있습니다:
 
-![X052 location](/img/x052-location.png)
+![X052 위치](/img/x052-location.png)
 
-### X052 Connector
+### X052 커넥터
 
 ![X052](/img/x052.png)
 
-The X052 uses special deep-plugging connectors. We recommend buying [these connectors](https://aliexpress.com/item/1005008523245081.html) and making 4 cables.
+X052는 특수 깊이 삽입형 커넥터를 사용합니다. [이 커넥터](https://aliexpress.com/item/1005008523245081.html)를 구매하여 케이블 4개를 만드는 것을 권장합니다.
 
-| Pin | Signal |
+| 핀 | 신호 |
 |---|---|
 | 44 | CAN-H |
 | 45 | CAN-L |
-| 22 | Ground |
-| 20 | Power (12V) |
+| 22 | 접지 |
+| 20 | 전원 (12V) |
 
-## Option 3: X930M (Not Recommended)
+## 옵션 3: X930M (권장하지 않음)
 
-The X930M connector **will not enable FSD** and is not recommended for this project.
+X930M 커넥터는 **FSD를 활성화할 수 없으며** 이 프로젝트에 권장되지 않습니다.
 
-## Next Steps
+## 다음 단계
 
-Once you've wired the connector to your board:
-1. Follow the [Firmware Flash](/docs/getting-started/firmware-flash) guide
-2. Configure your board and vehicle in [Configuration](/docs/getting-started/configuration)
-3. Test with the Serial Monitor at 115200 baud
+보드에 커넥터를 배선한 후:
+1. [펌웨어 플래시](/docs/getting-started/firmware-flash) 가이드를 따르세요
+2. [설정](/docs/getting-started/configuration)에서 보드와 차량을 설정하세요
+3. 115200 보드율로 시리얼 모니터로 테스트하세요

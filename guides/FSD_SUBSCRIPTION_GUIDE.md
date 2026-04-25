@@ -1,36 +1,36 @@
-# Guide: Subscribe to FSD from Outside Supported Regions
+# 가이드: 지원되지 않는 지역에서 FSD 구독하기
 
-If FSD subscriptions are not available in your region, you can work around this by creating a Tesla account in a region where FSD subscriptions are offered (e.g. Canada) and transferring your vehicle to that account. This allows you to subscribe to FSD for **99 CAD/month (~60 EUR)**.
+FSD 구독이 귀하의 지역에서 제공되지 않는 경우, FSD 구독이 가능한 지역 (예: 캐나다)에서 Tesla 계정을 생성하고 차량을 해당 계정으로 이전하는 방법으로 해결할 수 있습니다. 이를 통해 FSD를 **월 99 CAD (~60 EUR)**에 구독할 수 있습니다.
 
-> **Note:** This guide is for informational purposes. You are responsible for ensuring this complies with any terms of service or regulations in your region.
+> **참고:** 이 가이드는 정보 제공 목적으로만 작성되었습니다. 귀하의 지역 이용 약관이나 규정을 준수하는 것은 귀하의 책임입니다.
 
-## Step 1: Create a Canadian Tesla account
+## 1단계: 캐나다 Tesla 계정 만들기
 
-1. Go to the [Tesla website](https://www.tesla.com).
-2. In the top right corner, make sure you have the correct region selected: **Canada/English**.
-3. Click on the account icon in the top right.
-4. Click **Create Account**.
-5. Fill in your details and complete the account creation.
+1. [Tesla 웹사이트](https://www.tesla.com)에 접속하세요.
+2. 오른쪽 상단에서 지역이 **Canada/English**로 선택되어 있는지 확인하세요.
+3. 오른쪽 상단의 계정 아이콘을 클릭하세요.
+4. **계정 만들기**를 클릭하세요.
+5. 정보를 입력하고 계정 생성을 완료하세요.
 
-## Step 2: Transfer your vehicle
+## 2단계: 차량 이전
 
-1. Open the **Tesla app** on your phone (logged into your original account).
-2. Tap the **three lines** in the top right to open the menu.
-3. Go to **My Products**.
-4. Select the car you would like to transfer.
-5. Tap **Remove or Transfer Ownership**.
-6. Tap **Get Started**.
-7. Select that you have **sold the vehicle to an individual**.
-8. Press **Next**.
-9. Enter the details of your newly created Canadian account.
-10. Complete the verification process.
+1. 휴대폰에서 **Tesla 앱**을 열고 기존 계정으로 로그인하세요.
+2. 오른쪽 상단의 **줄 세 개** 아이콘을 눌러 메뉴를 여세요.
+3. **내 제품**으로 이동하세요.
+4. 이전하려는 차량을 선택하세요.
+5. **소유권 제거 또는 이전**을 누르세요.
+6. **시작하기**를 누르세요.
+7. **개인에게 차량을 판매했습니다**를 선택하세요.
+8. **다음**을 누르세요.
+9. 새로 만든 캐나다 계정 정보를 입력하세요.
+10. 인증 과정을 완료하세요.
 
-After verification, your car should now appear on your new Canadian Tesla account.
+인증 후 차량이 새 캐나다 Tesla 계정에 표시됩니다.
 
-## Step 3: Subscribe to FSD
+## 3단계: FSD 구독
 
-1. Open the **Tesla app** and log in with your Canadian account.
-2. Go to **Upgrades**.
-3. Subscribe to **Full Self-Driving (Supervised)**.
+1. **Tesla 앱**을 열고 캐나다 계정으로 로그인하세요.
+2. **업그레이드**로 이동하세요.
+3. **완전 자율 주행 (감독형)**에 구독하세요.
 
-Your vehicle now has a valid FSD entitlement, and the CAN mod board can enable FSD at the CAN bus level.
+이제 차량에 유효한 FSD 권한이 생겼으며, CAN 모드 보드가 CAN 버스 수준에서 FSD를 활성화할 수 있습니다.
