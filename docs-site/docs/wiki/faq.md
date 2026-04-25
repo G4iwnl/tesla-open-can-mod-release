@@ -2,64 +2,64 @@
 sidebar_position: 1
 ---
 
-# FAQ
+# 자주 묻는 질문 (FAQ)
 
-## General
+## 일반
 
-### Do I need an FSD subscription?
+### FSD 구독이 필요한가요?
 
-**Yes.** You must have an active FSD package on the vehicle — either purchased or subscribed. The board enables FSD at the CAN bus level, but the vehicle still needs a valid FSD entitlement from Tesla.
+**네.** 차량에 활성 FSD 패키지가 있어야 합니다 — 구매 또는 구독 방식 모두 가능합니다. 이 보드는 CAN 버스 수준에서 FSD를 활성화하지만, 차량에는 여전히 Tesla의 유효한 FSD 권한이 필요합니다.
 
-### Is FSD subscription not available in my region?
+### 제 지역에서 FSD 구독을 사용할 수 없는 경우 어떻게 하나요?
 
-You can work around this by creating a Tesla account in a region where FSD subscriptions are offered (e.g. Canada), transferring the vehicle to that account, and subscribing there. This costs approximately 99 CAD/month (~60 EUR). See the [FSD Subscription Guide](/docs/wiki/faq#fsd-subscription-from-outside-supported-regions) below.
+FSD 구독이 제공되는 지역 (예: 캐나다)에서 Tesla 계정을 만들고, 차량을 해당 계정으로 이전한 뒤 그곳에서 구독하는 방법으로 해결할 수 있습니다. 약 99 CAD/월 (~60 EUR)의 비용이 듭니다. 자세한 내용은 아래 [지원되지 않는 지역에서 FSD 구독하기](#fsd-subscription-from-outside-supported-regions)를 참고하세요.
 
-### Will this void my warranty?
+### 보증이 무효화되나요?
 
-Modifying the CAN bus may void parts of your vehicle warranty. You are responsible for understanding the risks.
+CAN 버스를 수정하면 차량 보증의 일부가 무효화될 수 있습니다. 위험을 이해하는 것은 귀하의 책임입니다.
 
-### Is this legal?
+### 이게 합법적인가요?
 
-This project is intended for testing purposes only and for use on private property. For any use beyond private testing, you are responsible for complying with all applicable local laws and regulations.
+이 프로젝트는 테스트 목적으로만, 그리고 사유지에서만 사용하도록 의도되었습니다. 사유지 테스트를 넘어서는 사용에 대해서는 적용 가능한 모든 지역 법률 및 규정을 준수할 책임은 귀하에게 있습니다.
 
-## Hardware
+## 하드웨어
 
-### Which board should I buy?
+### 어떤 보드를 구매해야 하나요?
 
-The **Adafruit Feather RP2040 CAN** is the most popular and well-documented choice. See [Hardware Selection](/docs/getting-started/hardware-selection) for a full comparison.
+**Adafruit Feather RP2040 CAN**이 가장 인기 있고 잘 문서화된 선택지입니다. 전체 비교는 [하드웨어 선택](/docs/getting-started/hardware-selection)을 참고하세요.
 
-### Do I need to cut the termination resistor?
+### 종단 저항을 잘라야 하나요?
 
-**Yes.** All Feather CAN boards and many external CAN transceivers ship with a 120 Ohm termination resistor. The vehicle's CAN bus already has its own termination — adding a second one causes communication errors.
+**네.** 모든 Feather CAN 보드와 많은 외부 CAN 트랜시버에는 120 Ohm 종단 저항이 있습니다. 차량의 CAN 버스에는 이미 자체 종단이 있으며, 두 번째 저항을 추가하면 통신 오류가 발생합니다.
 
-### Where do I connect the board in the car?
+### 차량 어디에 보드를 연결하나요?
 
-The recommended connection point is the **X179 connector** in the passenger side footwell. See the [Installation Guide](/docs/getting-started/installation) for details.
+권장 연결 지점은 보조석 발판의 **X179 커넥터**입니다. 자세한 내용은 [설치 가이드](/docs/getting-started/installation)를 참고하세요.
 
-## Software
+## 소프트웨어
 
-### How do I know which vehicle variant to select?
+### 어떤 차량 변형을 선택해야 하는지 어떻게 알 수 있나요?
 
-- **Legacy:** Portrait-oriented center screen + HW3 (pre-Palladium Model S/X)
-- **HW3:** Landscape-oriented center screen + HW3
-- **HW4:** Landscape-oriented center screen + HW4
+- **Legacy:** 세로형 센터 스크린 + HW3 (팔라디움 이전 Model S/X)
+- **HW3:** 가로형 센터 스크린 + HW3
+- **HW4:** 가로형 센터 스크린 + HW4
 
-Check **Controls > Software > Additional Vehicle Information** on the touchscreen.
+차량 터치스크린에서 **제어 > 소프트웨어 > 추가 차량 정보**를 확인하세요.
 
-### My HW4 vehicle is on FSD v13 — which variant do I compile with?
+### HW4 차량이 FSD v13을 사용하는 경우 어떤 변형으로 컴파일해야 하나요?
 
-Compile with `HW3`. HW4 vehicles on the 2026.8.X branch or anything older than 2026.2.9 are still on FSD v13.
+`HW3`으로 컴파일하세요. 2026.8.X 브랜치 또는 2026.2.9보다 오래된 HW4 차량은 여전히 FSD v13을 사용합니다.
 
-### What does BYPASS_TLSSC_REQUIREMENT do?
+### BYPASS_TLSSC_REQUIREMENT는 무엇을 하나요?
 
-Normally, FSD is only activated when "Traffic Light and Stop Sign Control" is toggled on. `BYPASS_TLSSC_REQUIREMENT` bypasses this check and always enables FSD.
+일반적으로 FSD는 "신호등 및 정지 표지판 제어"가 켜져 있을 때만 활성화됩니다. `BYPASS_TLSSC_REQUIREMENT`는 이 확인을 우회하고 항상 FSD를 활성화합니다.
 
-## FSD Subscription from Outside Supported Regions
+## 지원되지 않는 지역에서 FSD 구독하기
 
-1. Go to the Tesla website, select **Canada/English** as region
-2. Create a new Tesla account
-3. Transfer your vehicle to the Canadian account via the Tesla app (My Products > Remove or Transfer Ownership)
-4. Log into the Tesla app with the Canadian account
-5. Go to **Upgrades** and subscribe to **Full Self-Driving (Supervised)**
+1. Tesla 웹사이트에서 지역을 **Canada/English**로 선택하세요
+2. 새 Tesla 계정을 만드세요
+3. Tesla 앱을 통해 차량을 캐나다 계정으로 이전하세요 (내 제품 > 소유권 제거 또는 이전)
+4. 캐나다 계정으로 Tesla 앱에 로그인하세요
+5. **업그레이드**로 가서 **완전 자율 주행 (감독형)**에 구독하세요
 
-Your vehicle now has a valid FSD entitlement.
+이제 차량에 유효한 FSD 권한이 생겼습니다.

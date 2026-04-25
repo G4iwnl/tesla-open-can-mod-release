@@ -2,56 +2,56 @@
 sidebar_position: 4
 ---
 
-# CAN Bus Basics
+# CAN 버스 기초
 
-A brief introduction to the CAN (Controller Area Network) bus and how it relates to this project.
+CAN (Controller Area Network) 버스와 이 프로젝트와의 관계에 대한 간략한 소개입니다.
 
-## What is CAN?
+## CAN이란?
 
-CAN (Controller Area Network) is a serial communication protocol used in vehicles and industrial systems. In a Tesla, the CAN bus connects all Electronic Control Units (ECUs) — the touchscreen, autopilot computer, body controller, battery management, and more.
+CAN (Controller Area Network)은 차량 및 산업 시스템에서 사용되는 직렬 통신 프로토콜입니다. Tesla에서 CAN 버스는 모든 전자 제어 장치 (ECU) — 터치스크린, 오토파일럿 컴퓨터, 바디 컨트롤러, 배터리 관리 시스템 등 — 을 연결합니다.
 
-## Key Concepts
+## 핵심 개념
 
-### Messages and IDs
+### 메시지와 ID
 
-Every CAN message has an **ID** (an integer) and a **data payload** (up to 8 bytes). ECUs filter messages by ID — they only process the IDs they care about.
+모든 CAN 메시지에는 **ID** (정수)와 **데이터 페이로드** (최대 8바이트)가 있습니다. ECU는 ID로 메시지를 필터링하여 관심 있는 ID만 처리합니다.
 
-This project monitors specific CAN IDs:
+이 프로젝트는 다음 특정 CAN ID를 모니터링합니다:
 
-| CAN ID | Name | Purpose |
+| CAN ID | 이름 | 용도 |
 |---|---|---|
-| 69 | STW_ACTN_RQ | Steering wheel stalk actions (Legacy) |
-| 921 | DAS_status | Driver Assistance System status (HW4) |
-| 1016 | UI_driverAssistControl | Follow distance setting (HW3/HW4) |
-| 1021 | UI_autopilotControl | FSD enable, nag, speed profiles |
-| 1006 | — | FSD enable, nag, speed profiles (Legacy) |
+| 69 | STW_ACTN_RQ | 스티어링 휠 스토크 동작 (Legacy) |
+| 921 | DAS_status | 운전자 지원 시스템 상태 (HW4) |
+| 1016 | UI_driverAssistControl | 추종 거리 설정 (HW3/HW4) |
+| 1021 | UI_autopilotControl | FSD 활성화, nag, 속도 프로파일 |
+| 1006 | — | FSD 활성화, nag, 속도 프로파일 (Legacy) |
 
-### Multiplexing (Mux)
+### 멀티플렉싱 (Mux)
 
-Some CAN messages use **multiplexing** — the same CAN ID carries different data depending on a mux field in the payload. For example, CAN ID 1021 has mux values 0, 1, and 2, each carrying different signals.
+일부 CAN 메시지는 **멀티플렉싱**을 사용합니다 — 동일한 CAN ID가 페이로드의 mux 필드에 따라 다른 데이터를 전달합니다. 예를 들어, CAN ID 1021은 mux 값 0, 1, 2가 각각 다른 신호를 전달합니다.
 
-### Counters and Checksums
+### 카운터와 체크섬
 
-Some CAN messages include a **counter** (incrementing sequence number) and a **checksum** (integrity check). When modifying these messages, the counter and checksum must be recalculated — otherwise the receiving ECU will discard the frame.
+일부 CAN 메시지에는 **카운터** (증가하는 시퀀스 번호)와 **체크섬** (무결성 검사)이 포함됩니다. 이러한 메시지를 수정할 때는 카운터와 체크섬을 다시 계산해야 합니다 — 그렇지 않으면 수신 ECU가 프레임을 버립니다.
 
-### Bit Manipulation
+### 비트 조작
 
-CAN payloads are binary data. Individual features are controlled by specific **bits** within the payload. For example, the FSD enable flag is a single bit at a specific position in CAN ID 1021.
+CAN 페이로드는 이진 데이터입니다. 개별 기능은 페이로드 내의 특정 **비트**로 제어됩니다. 예를 들어, FSD 활성화 플래그는 CAN ID 1021의 특정 위치에 있는 단일 비트입니다.
 
-## CAN Bus Speed
+## CAN 버스 속도
 
-Tesla vehicles use a CAN bus speed of **500 kbit/s**. The firmware configures this automatically for all supported boards.
+Tesla 차량은 **500 kbit/s**의 CAN 버스 속도를 사용합니다. 펌웨어는 지원되는 모든 보드에서 이를 자동으로 설정합니다.
 
-## Termination
+## 종단
 
-A CAN bus requires exactly two 120 Ohm termination resistors — one at each end of the bus. The vehicle already has these. Adding a third termination resistor (from your board) will cause communication errors. That's why you must remove/cut any onboard termination resistor on your CAN board.
+CAN 버스에는 버스 양 끝에 각각 하나씩 총 두 개의 120 Ohm 종단 저항이 필요합니다. 차량에는 이미 이것들이 있습니다. 보드에 세 번째 종단 저항을 추가하면 통신 오류가 발생합니다. 그래서 CAN 보드의 온보드 종단 저항을 제거하거나 잘라야 합니다.
 
-## Safety
+## 안전
 
 :::danger
-The CAN bus controls **everything** in the vehicle — braking, steering, airbags, throttle, lights, doors. A malformed CAN message can have serious, safety-critical consequences. Only modify CAN messages if you fully understand what you're doing.
+CAN 버스는 차량의 **모든 것** — 제동, 조향, 에어백, 스로틀, 조명, 도어 — 을 제어합니다. 잘못된 형식의 CAN 메시지는 심각하고 안전에 중요한 결과를 초래할 수 있습니다. 무엇을 하고 있는지 완전히 이해한 경우에만 CAN 메시지를 수정하세요.
 :::
 
-## Further Reading
+## 추가 자료
 
-- Signal names sourced from [tesla-can-explorer](https://github.com/mikegapinski/tesla-can-explorer) by @mikegapinski
+- 신호 이름은 @mikegapinski의 [tesla-can-explorer](https://github.com/mikegapinski/tesla-can-explorer)에서 가져왔습니다

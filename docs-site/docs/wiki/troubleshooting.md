@@ -2,52 +2,52 @@
 sidebar_position: 2
 ---
 
-# Troubleshooting
+# 문제 해결
 
-## Board Not Detected
+## 보드가 인식되지 않음
 
-**ESP32 boards:** Hold the **BOOT** button during upload if auto-reset does not work.
+**ESP32 보드:** 자동 리셋이 작동하지 않는 경우 업로드 중 **BOOT** 버튼을 누르고 있으세요.
 
-## No Serial Output
+## 시리얼 출력이 없음
 
-- Ensure the Serial Monitor is set to **115200 baud**
-- Check that `enablePrint` is set to `true`
-- Verify the USB cable supports data (not charge-only)
+- 시리얼 모니터가 **115200 보드율**로 설정되어 있는지 확인하세요
+- `enablePrint`가 `true`로 설정되어 있는지 확인하세요
+- USB 케이블이 데이터 전송을 지원하는지 확인하세요 (충전 전용이 아닌지 확인)
 
-## CAN Communication Errors
+## CAN 통신 오류
 
-- **Check termination:** Make sure you cut/removed the onboard 120 Ohm termination resistor
-- **Check wiring:** CAN-H and CAN-L must not be swapped
-- **Check baud rate:** The vehicle uses 500 kbit/s — this is set automatically by the firmware
+- **종단 확인:** 온보드 120 Ohm 종단 저항을 잘랐는지/제거했는지 확인하세요
+- **배선 확인:** CAN-H와 CAN-L이 바뀌지 않았는지 확인하세요
+- **보드율 확인:** 차량은 500 kbit/s를 사용하며 — 펌웨어에 의해 자동으로 설정됩니다
 
-## FSD Not Activating
+## FSD가 활성화되지 않음
 
-1. Verify you have an active FSD subscription or purchase
-2. Check that "Traffic Light and Stop Sign Control" is enabled in Autopilot settings (unless using `BYPASS_TLSSC_REQUIREMENT`)
-3. Open the Serial Monitor and check if the handler output shows `FSD: 1`
-4. Verify you selected the correct vehicle variant (`-DHW3`, `-DHW4`, or `-DLEGACY`) in `platformio.ini` build flags
-5. HW4 on FSD v13: Make sure you compiled with `HW3`, not `HW4`
+1. 활성 FSD 구독 또는 구매가 있는지 확인하세요
+2. 오토파일럿 설정에서 "신호등 및 정지 표지판 제어"가 활성화되어 있는지 확인하세요 (`BYPASS_TLSSC_REQUIREMENT`를 사용하지 않는 경우)
+3. 시리얼 모니터를 열고 핸들러 출력에 `FSD: 1`이 표시되는지 확인하세요
+4. `platformio.ini` 빌드 플래그에서 올바른 차량 변형 (`-DHW3`, `-DHW4`, 또는 `-DLEGACY`)을 선택했는지 확인하세요
+5. FSD v13의 HW4: `HW4`가 아닌 `HW3`으로 컴파일했는지 확인하세요
 
-## Build Errors
+## 빌드 오류
 
-### Board/driver mismatch
+### 보드/드라이버 불일치
 
-If the PlatformIO `-e` environment doesn't match the vehicle define in `platformio.ini` build flags, the build will fail. Make sure they match.
+PlatformIO `-e` 환경이 `platformio.ini` 빌드 플래그의 차량 정의와 일치하지 않으면 빌드가 실패합니다. 서로 일치하는지 확인하세요.
 
-### Missing libraries
+### 라이브러리 누락
 
-- **ESP32:** No additional libraries needed — the TWAI driver is built into the ESP32 Arduino core
+- **ESP32:** 추가 라이브러리 불필요 — TWAI 드라이버는 ESP32 Arduino 코어에 내장되어 있습니다
 
-### Native test compilation fails (Windows)
+### 네이티브 테스트 컴파일 실패 (Windows)
 
-Install MinGW-w64 GCC:
+MinGW-w64 GCC를 설치하세요:
 ```bash
 winget install BrechtSanders.WinLibs.POSIX.UCRT
 ```
-Restart your terminal so `gcc` is on PATH.
+터미널을 재시작하여 `gcc`가 PATH에 등록되도록 하세요.
 
-## Speed Profile Not Changing
+## 속도 프로파일이 변경되지 않음
 
-- Make sure you're adjusting the **follow distance** on the steering wheel stalk, not cruise speed
-- Check Serial Monitor output to see if the distance value changes
-- Verify the correct vehicle variant is selected (HW4 has 5 levels, HW3 has 3)
+- 크루즈 속도가 아닌 스티어링 휠 스토크의 **추종 거리** 조절을 하고 있는지 확인하세요
+- 시리얼 모니터 출력을 확인하여 거리 값이 변경되는지 보세요
+- 올바른 차량 변형이 선택되었는지 확인하세요 (HW4는 5단계, HW3은 3단계)
